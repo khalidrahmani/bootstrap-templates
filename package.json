@@ -1,0 +1,33 @@
+{
+  "name": "myapp",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "./node_modules/.bin/nodemon ./bin/www"    
+  },
+  "dependencies": {
+    "body-parser":    "*",
+    "cookie-parser":  "*", 
+    "forever":        "*",    
+    "express":        "*",
+    "compression":    "*",
+    "swig":           "*",
+    "morgan":         "*",
+    "request":        "*",
+    "serve-favicon":  "*",
+    "fb": "*",
+    "node-pinterest": "*",
+    "node-schedule": "*",
+    "r-json": "*",
+    "tumblr": "*",
+    "twitter": "*",
+    "youtube-api": "*",
+    "async": "*",
+    "pg": "*",
+    "sequelize": "*",    
+    "instagram-node": "*"    
+  },
+  "devDependencies": {    
+    "nodemon": "latest"
+  }  
+}

@@ -1,0 +1,5 @@
+node_modules/
+doc
+config/env/env.json
+Makefile
+public/uploads/*
