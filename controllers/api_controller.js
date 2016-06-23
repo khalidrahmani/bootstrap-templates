@@ -4,7 +4,9 @@ var express = require('express')
 	 ,async        = require('async')
 	 ,pg           = require('pg')
 	 ,Sequelize    = require('sequelize')
-	 ,sequelize = new Sequelize('postgres://'+CREDENTIALS.pg.user+':'+CREDENTIALS.pg.password+'@'+CREDENTIALS.pg.host+':'+CREDENTIALS.pg.port+'/'+CREDENTIALS.pg.database);
+	 ,sequelize    = new Sequelize(CREDENTIALS.db_url);
+	 //,sequelize = new Sequelize('postgres://'+CREDENTIALS.pg.user+':'+CREDENTIALS.pg.password+'@'+CREDENTIALS.pg.host+':'+CREDENTIALS.pg.port+'/'+CREDENTIALS.pg.database);
+
 
 
 function pushToArray(_array, itemType, sourceID, title, description, sourceCreatedUTC, sourceUrl) {

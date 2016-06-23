@@ -1,4 +1,5 @@
 module.exports = {
+    "db_url": 'postgres://postgres:postgres@localhost:5432/aggregator',
     "pg": {
         "user": "postgres",
         "password": "postgres",
