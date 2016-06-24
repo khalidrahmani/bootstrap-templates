@@ -25,6 +25,7 @@
     "async": "*",
     "pg": "*",
     "sequelize": "*",    
+    "moment": "*",  
     "instagram-node": "*"    
   },
   "devDependencies": {    
