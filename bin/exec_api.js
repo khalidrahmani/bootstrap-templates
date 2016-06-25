@@ -73,6 +73,7 @@ function run() {
       })
     },
     function(count, callback) {
+      console.log("Instagram posts.")
   		data 		= [];
   		media   = [];
       var ig 	= require('instagram-node').instagram();
@@ -96,6 +97,7 @@ function run() {
         })
     },
     function(count, data, media, callback) {
+      console.log("Pinterest posts.")
 			var PDK 			= require('node-pinterest');
       var pinterest = PDK.init(CREDENTIALS.pinterest.token);      
       pinterest.api('boards/' + CREDENTIALS.pinterest.user_board + '/pins',{ qs: {fields: 'id,created_at,note,link,image,media,attribution' }}).then(function(result) { //'boards/cocacola/holiday/pins/'        
@@ -121,6 +123,7 @@ function run() {
       });		    	
     },
     function(count, data, media, callback) {
+      console.log("twitter posts.")
       var Twitter = require('twitter');
       var twitter_client = new Twitter({
         consumer_key: CREDENTIALS.twitter.consumer_key,
@@ -147,6 +150,7 @@ function run() {
       });		    	
     },
     function(count, data, media, callback) {
+      console.log("Youtube posts.")
       var youtubeV3;
       var google = require('googleapis'),
       youtubeV3 = google.youtube({
@@ -182,6 +186,7 @@ function run() {
       });		    	
     },
     function(count, data, media, callback) {
+      console.log("tumblr posts.")
       var tumblr = require('tumblr');
       var oauth = {
           consumer_key: CREDENTIALS.tumblr.consumer_key,
@@ -208,6 +213,7 @@ function run() {
       });		    	
     },
     function(count, data, media, callback) {
+      console.log("facebook posts.")
       var FB = require('fb');
       FB.api(CREDENTIALS.facebook.brandId + '/feed', { access_token: CREDENTIALS.facebook.access_token }, function(res) {                    
         if (res.data.length > 0) {
@@ -237,9 +243,7 @@ function run() {
     		},
     		attributes: ['sourceid']
     	}).then(function(rows){
-        console.log(rows)
     		existingdata = rows.map(function(row){ return row['dataValues']['sourceid'].toString() })
-        console.log(existingdata)
     		for(var i = data.length - 1; i >= 0; i--) {	
 			    if(existingdata.indexOf(data[i]['sourceid'].toString()) > -1){
 			      data.splice(i, 1)
