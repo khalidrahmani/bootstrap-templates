@@ -96,7 +96,6 @@ CREATE TABLE media
 
 ALTER TABLE item ADD CONSTRAINT uniqsourceid UNIQUE (sourceid);
 
-
 INSERT INTO itemtype (itemtypeid, name, iconurl) VALUES (1, 'Brand', 'http://www.proximityinsight.com/wp-content/uploads/2016/06/Cartier-logo-c.png');
 INSERT INTO itemtype (itemtypeid, name, iconurl) VALUES (2, 'Facebook', 'http://lcps.k12.nm.us/wp-content/themes/lcps/fd8ca743ed4abc6e6aaaa4622772fe96/lcps-share/images/facebook-small.png');
 INSERT INTO itemtype (itemtypeid, name, iconurl) VALUES (3, 'Youtube', 'http://www.massageenvy.com/Common/Img/clinics/162/youtube_logo_small.png');
@@ -110,3 +109,4 @@ INSERT INTO mediatype (mediatypeid, type) VALUES (1, 'Video');
 INSERT INTO mediatype (mediatypeid, type) VALUES (2, 'Image');
 
 /* heroku pg:psql   to login to heroku database */
+/* node bin/exec_api.js */
