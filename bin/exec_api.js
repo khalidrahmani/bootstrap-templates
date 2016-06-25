@@ -161,7 +161,7 @@ function run() {
           part: 'id, snippet',
           type: 'video',
           q: CREDENTIALS.youtube.title,
-          maxResults: 30,
+          maxResults: 100,
           order: 'date',
           safeSearch: 'moderate',
           videoEmbeddable: true
@@ -195,7 +195,7 @@ function run() {
           token_secret: CREDENTIALS.tumblr.token_secret
       };
       var blog = new tumblr.Blog(CREDENTIALS.tumblr.brandTitle, oauth);
-      blog.text({ limit: 40 }, function(error, response) {
+      blog.text({ limit: 100 }, function(error, response) {
           if (response.posts.length > 0) {
             result = response.posts
             if(count != 0){
