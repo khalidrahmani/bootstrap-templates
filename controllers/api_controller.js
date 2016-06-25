@@ -100,7 +100,7 @@ router.get('/2', function(req, res, next) {
 
 router.get('/', function(req, res, next) {
   res.send({status: 200})
-}
+})
 router.get('/3', function(req, res, next) {
 	console.log("Aggregator initialized, runs every 10 minutes.")
 	console.log("Feeds to be aggregated : " + Object.keys(itemTypes).join(', ') + ".")
