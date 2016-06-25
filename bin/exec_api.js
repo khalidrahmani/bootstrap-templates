@@ -6,7 +6,7 @@ var CREDENTIALS  = require('../config/config')
 	 ,sequelize    = new Sequelize(CREDENTIALS.db_url)
 	 ,itemTypes    = {facebook: 2, youtube: 3, instagram: 4, twitter: 5, pinterest: 6, tumblr: 7}
 	 ,mediaTypes   = {image: 1, video: 2, photo: 1}
-	 ,Item = sequelize.define('item', {
+	 ,Item         = sequelize.define('item', {
 				itemtypeid: 			Sequelize.INTEGER,
 				areaid:           Sequelize.INTEGER,
 				sourceid: 		  	Sequelize.STRING,
@@ -29,7 +29,7 @@ var CREDENTIALS  = require('../config/config')
 				createdAt: 'createdutc',		
 				freezeTableName: true,
 			})
-	 ,Media = sequelize.define('media', {
+	 ,Media        = sequelize.define('media', {
 				itemid: 			    Sequelize.INTEGER,				
 				mediatypeid:      Sequelize.INTEGER,
 				mediaurl: 		  	Sequelize.STRING,			
@@ -49,7 +49,7 @@ function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecre
   temp.sourceid 				= sourceid.toString()
   temp.title 						= title || ''
   temp.description 			= description  || ''
-  temp.sourcecreatedutc = sourcecreatedutc //"2016-06-24T12:08:49.435Z"//moment(sourcecreatedutc).unix()
+  temp.sourcecreatedutc = sourcecreatedutc
   temp.sourceurl 				= sourceurl
   //temp.areaid         = 24 // need to have data in area table and areatype
 	temp.viewcount 				= 0
@@ -59,47 +59,68 @@ function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecre
   return _array
 }
 
-
 function run() {
 	console.log("Aggregator initialized, runs every 10 minutes.")
 	console.log("Feeds to be aggregated : " + Object.keys(itemTypes).join(', ') + ".")
 	async.waterfall([
     function(callback) {
+      Item.findAll({
+        attributes: [[sequelize.fn('COUNT', sequelize.col('itemid')), 'count_items']],
+      }).then(function(items){
+        count = items[0].dataValues.count_items
+        count = 0
+        callback(null, count)
+      })
+    },
+    function(count, callback) {
   		data 		= [];
   		media   = [];
       var ig 	= require('instagram-node').instagram();
-      ig.use({ access_token: CREDENTIALS.instagram.access_token });
-      ig.user_media_recent(CREDENTIALS.instagram.brandId, function(err, result, remaining, limit) {  
-        if (result.length > 0) {  
-        	type = result[0].type
-        	if(type == "image")					media.push({itemid: result[0].id, mediatypeid: mediaTypes[type], mediaurl: result[0].images.standard_resolution.url})  	
-        	else if (type == "video")		media.push({itemid: result[0].id, mediatypeid: mediaTypes[type], mediaurl: result[0].videos.standard_resolution.url})  	  		
-        	date = moment(result[0].created_time, 'x').format()        	
-          data = pushToArray(data, 'instagram', result[0].id, result[0].caption, result[0].caption, date, result[0].link)
-        }
-        callback(null, data, media);
-      });
+      ig.use({ access_token: CREDENTIALS.instagram.access_token })        
+        ig.user_media_recent(CREDENTIALS.instagram.brandId, {count: 100}, function(err, result, remaining, limit) {
+          if (result.length > 0) {
+            if(count != 0){
+              result = [result[0]]
+            }
+            for (var i = 0; i < result.length; i++) {
+              post = result[i]
+              type = post.type
+              if(type == "image") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.images.standard_resolution.url})   
+              if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.videos.standard_resolution.url})         
+              date = moment(post.created_time, 'x').format()
+              text = post.caption != null ? post.caption.text : ''
+              data = pushToArray(data, 'instagram', post.id, text, text, date, post.link)              
+            }
+          }
+          callback(null, count, data, media);
+        })
     },
-    function(data, media, callback) {
+    function(count, data, media, callback) {
 			var PDK 			= require('node-pinterest');
       var pinterest = PDK.init(CREDENTIALS.pinterest.token);      
       pinterest.api('boards/' + CREDENTIALS.pinterest.user_board + '/pins',{ qs: {fields: 'id,created_at,note,link,image,media,attribution' }}).then(function(result) { //'boards/cocacola/holiday/pins/'        
         if (result.data.length > 0) {
-          pin = result.data[0]
-          if(pin.media != undefined){
-            if(pin.media.type == 'image' && pin.image && pin.image.original != undefined){
-              media.push({itemid: pin.id, mediatypeid: mediaTypes['image'], mediaurl: pin.image.original.url})   
-            }
-            if(pin.media.type == 'video' && pin.attribution != undefined){
-              media.push({itemid: pin.id, mediatypeid: mediaTypes['video'], mediaurl: pin.attribution.url})   
-            }                        
+          result = result.data
+          if(count != 0){
+            result = [result[0]]
           }          
-          data = pushToArray(data, 'pinterest', pin.id, pin.note, pin.note, pin.created_at, pin.link)
+          for (var i = 0; i < result.length; i++) {
+            pin = result[i]
+            if(pin.media != undefined){
+              if(pin.media.type == 'image' && pin.image && pin.image.original != undefined){
+                media.push({itemid: pin.id, mediatypeid: mediaTypes['image'], mediaurl: pin.image.original.url})   
+              }
+              if(pin.media.type == 'video' && pin.attribution != undefined){
+                media.push({itemid: pin.id, mediatypeid: mediaTypes['video'], mediaurl: pin.attribution.url})   
+              }                        
+            }          
+            data = pushToArray(data, 'pinterest', pin.id, pin.note, pin.note, pin.created_at, pin.link)
+          }
         }
-        callback(null, data, media);
+        callback(null, count, data, media);
       });		    	
     },
-    function(data, media, callback) {
+    function(count, data, media, callback) {
       var Twitter = require('twitter');
       var twitter_client = new Twitter({
         consumer_key: CREDENTIALS.twitter.consumer_key,
@@ -109,17 +130,23 @@ function run() {
       });
 
       twitter_client.get('search/tweets', { q: CREDENTIALS.twitter.title }, function(error, tweets, response) {                    
-        if (tweets.statuses[0]) {
-          tweet = tweets.statuses[0]
-          if (tweet.entities.media != undefined){ // only media type photo
-            media.push({itemid: tweet.id, mediatypeid: mediaTypes['photo'], mediaurl: tweet.entities.media[0].media_url})
+        if (tweets.statuses.length > 0) {
+          result = tweets.statuses
+          if(count != 0){
+            result = [result[0]]
           }
-        	data = pushToArray(data, 'twitter', tweet.id, tweet.text, tweet.text, tweet.created_at, '')
+          for (var i = 0; i < result.length; i++) {          
+            tweet = result[i]
+            if (tweet.entities.media != undefined){ // only media type photo
+              media.push({itemid: tweet.id, mediatypeid: mediaTypes['photo'], mediaurl: tweet.entities.media[0].media_url})
+            }
+          	data = pushToArray(data, 'twitter', tweet.id, tweet.text, tweet.text, tweet.created_at, '')
+          }
         }
-        callback(null, data, media);
+        callback(null, count, data, media);
       });		    	
     },
-    function(data, media, callback) {
+    function(count, data, media, callback) {
       var youtubeV3;
       var google = require('googleapis'),
       youtubeV3 = google.youtube({
@@ -130,25 +157,31 @@ function run() {
           part: 'id, snippet',
           type: 'video',
           q: CREDENTIALS.youtube.title,
-          maxResults: 1,
+          maxResults: 30,
           order: 'date',
           safeSearch: 'moderate',
           videoEmbeddable: true
       }, (err, response) => {
         var sourceID, title, description, sourceCreatedUTC, sourceUrl;
-        if (response.items[0]) {
-          var snippet = response.items[0]['snippet'];
-          sourceID = response.items[0]['id']['videoId'];
-          title = snippet.title;
-          description = snippet.description;
-          sourceCreatedUTC = snippet.publishedAt;
-          sourceUrl = snippet.thumbnails.default.url;
-          data = pushToArray(data, 'youtube', sourceID, title, description, sourceCreatedUTC, sourceUrl)
+        if (response.items.length > 0) {
+          result = response.items
+          if(count != 0){
+            result = [result[0]]
+          }          
+          for (var i = 0; i < result.length; i++) { 
+            var snippet = result[i]['snippet'];
+            sourceID = result[i]['id']['videoId'];
+            title = snippet.title;
+            description = snippet.description;
+            sourceCreatedUTC = snippet.publishedAt;
+            sourceUrl = snippet.thumbnails.default.url;
+            data = pushToArray(data, 'youtube', sourceID, title, description, sourceCreatedUTC, sourceUrl)
+          }
         }
-        callback(null, data, media);
+        callback(null, count, data, media);
       });		    	
     },
-    function(data, media, callback) {
+    function(count, data, media, callback) {
       var tumblr = require('tumblr');
       var oauth = {
           consumer_key: CREDENTIALS.tumblr.consumer_key,
@@ -156,32 +189,43 @@ function run() {
           token: CREDENTIALS.tumblr.token,
           token_secret: CREDENTIALS.tumblr.token_secret
       };
-
       var blog = new tumblr.Blog(CREDENTIALS.tumblr.brandTitle, oauth);
-      blog.text({ limit: 1 }, function(error, response) {
+      blog.text({ limit: 40 }, function(error, response) {
           if (response.posts.length > 0) {
-            post = response.posts[0]  
-            type = post.type
-            if(type == "photo")       media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.photos[0].alt_sizes[0].url})   
-            else if (type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.player[0].embed_code})
-            	data = pushToArray(data, 'tumblr', post.id, post.title, post.blog_name, post.date, post.post_url)
+            result = response.posts
+            if(count != 0){
+              result = [result[0]]
+            }          
+            for (var i = 0; i < result.length; i++) { 
+              post = result[i]  
+              type = post.type
+              if(type == "photo") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.photos[0].alt_sizes[0].url})   
+              if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.player[0].embed_code})
+              	data = pushToArray(data, 'tumblr', post.id, post.title, post.blog_name, post.date, post.post_url)
+              }
             }
-            callback(null, data, media);
+            callback(null, count, data, media);
       });		    	
     },
-    function(data, media, callback) {
+    function(count, data, media, callback) {
       var FB = require('fb');
       FB.api(CREDENTIALS.facebook.brandId + '/feed', { access_token: CREDENTIALS.facebook.access_token }, function(res) {                    
-          if (res.data.length > 0) {
-            post = res.data[0]
+        if (res.data.length > 0) {
+          result = res.data
+          if(count != 0){
+            result = [result[0]]
+          }          
+          for (var i = 0; i < result.length; i++) { 
+            post = result[i]
             if (post.type != undefined){
               type = post.type
-              if(type == "photo")       media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.picture})   
-              else if (type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.source})
-              }            
-          	data = pushToArray(data, 'facebook', post.id, post.message, post.story, post.created_time, "")
+              if(type == "photo") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.picture})   
+              if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.source})
+            }            
+         	  data = pushToArray(data, 'facebook', post.id, post.message, post.story, post.created_time, "")
           }
-          callback(null, data, media);
+        }
+        callback(null, data, media);
       });		    	
 	    },
     function(data, media, callback) {
@@ -193,7 +237,9 @@ function run() {
     		},
     		attributes: ['sourceid']
     	}).then(function(rows){
+        console.log(rows)
     		existingdata = rows.map(function(row){ return row['dataValues']['sourceid'].toString() })
+        console.log(existingdata)
     		for(var i = data.length - 1; i >= 0; i--) {	
 			    if(existingdata.indexOf(data[i]['sourceid'].toString()) > -1){
 			      data.splice(i, 1)
@@ -225,8 +271,7 @@ function run() {
 	], function (err, result) {
       if(err) console.log(err)
       else    console.log("finished")
-	});	
-  	
+	})  	
 }
 
 run()
