@@ -68,7 +68,7 @@ function run() {
         attributes: [[sequelize.fn('COUNT', sequelize.col('itemid')), 'count_items']],
       }).then(function(items){
         count = items[0].dataValues.count_items
-        count = 0
+        //count = 0
         callback(null, count)
       })
     },
