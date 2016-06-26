@@ -199,7 +199,7 @@ function run() {
           token_secret: CREDENTIALS.tumblr.token_secret
       };
       var blog = new tumblr.Blog(CREDENTIALS.tumblr.brandTitle, oauth);
-      blog.text({ limit: 100 }, function(error, response) {
+      blog.text({ limit: 50 }, function(error, response) {
           if (response.posts.length > 0) {
             console.log("got "+ response.posts.length + " tumbler posts")
             result = response.posts
