@@ -104,12 +104,10 @@ INSERT INTO itemtype (itemtypeid, name, iconurl) VALUES (5, 'Twitter', 'http://w
 INSERT INTO itemtype (itemtypeid, name, iconurl) VALUES (6, 'Pinterest', 'https://cdnjs.cloudflare.com/ajax/libs/webicons/2.0.0/webicons/webicon-pinterest-m.png');
 INSERT INTO itemtype (itemtypeid, name, iconurl) VALUES (7, 'Tumblr', 'https://cdnjs.cloudflare.com/ajax/libs/webicons/2.0.0/webicons/webicon-tumblr-m.png');
 
-
 INSERT INTO mediatype (mediatypeid, type) VALUES (1, 'Video');
 INSERT INTO mediatype (mediatypeid, type) VALUES (2, 'Image');
 
-
-/* heroku git:clone -a myapp */
+/* heroku git:clone -a myapp                      */
 /* add heroku postgres addon                      */
 /* heroku config:add NODE_ENV=production          */
 

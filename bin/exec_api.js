@@ -4,8 +4,8 @@ var CREDENTIALS  = require('../config/config')
 	 ,pg           = require('pg')
 	 ,Sequelize    = require('sequelize')
 	 ,sequelize    = new Sequelize(CREDENTIALS.db_url)
-	 ,itemTypes    = {facebook: 2, youtube: 3, instagram: 4, twitter: 5, pinterest: 6, tumblr: 7}
-	 ,mediaTypes   = {image: 1, video: 2, photo: 1}
+	 ,itemTypes    = {} 
+	 ,mediaTypes   = {} 
 	 ,Item         = sequelize.define('item', {
 				itemtypeid: 			Sequelize.INTEGER,
 				areaid:           Sequelize.INTEGER,
@@ -42,13 +42,38 @@ var CREDENTIALS  = require('../config/config')
 				timestamps: false,
 				freezeTableName: true,
 			})
+   ,MediaType        = sequelize.define('mediatype', {        
+        type:         Sequelize.STRING,     
+        mediatypeid : {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          autoIncrement: true
+        }   
+      }, {
+        timestamps: false,
+        freezeTableName: true,
+      })
+   ,ItemType        = sequelize.define('itemtype', {        
+        name:         Sequelize.STRING,     
+        iconurl:      Sequelize.STRING,     
+        itemtypeid : {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          autoIncrement: true
+        }   
+      }, {
+        timestamps: false,
+        freezeTableName: true,
+      })   
 
 function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecreatedutc, sourceurl) {
   var temp = {}
+  title       = title || ''
+  description = description  || ''
   temp.itemtypeid 			= itemTypes[itemtypeid]
   temp.sourceid 				= sourceid.toString()
-  temp.title 						= title || ''
-  temp.description 			= description  || ''
+  temp.title 						= title.replace(/(\r\n|\n|\r)/gm,"")
+  temp.description 			= description.replace(/(\r\n|\n|\r)/gm,"")
   temp.sourcecreatedutc = sourcecreatedutc
   temp.sourceurl 				= sourceurl
   //temp.areaid         = 24 // need to have data in area table and areatype
@@ -64,12 +89,23 @@ function run() {
 	console.log("Feeds to be aggregated : " + Object.keys(itemTypes).join(', ') + ".")
 	async.waterfall([
     function(callback) {
-      Item.findAll({
-        attributes: [[sequelize.fn('COUNT', sequelize.col('itemid')), 'count_items']],
-      }).then(function(items){
-        count = items[0].dataValues.count_items
-        //count = 0
-        callback(null, count)
+      ItemType.findAll({}).then(function(itemtypes){
+        for (var i = 0; i < itemtypes.length; i++) {
+          itemTypes[itemtypes[i].name.toLowerCase()] = itemtypes[i].itemtypeid
+        }
+        MediaType.findAll({}).then(function(mediatypes){          
+          for (var i = 0; i < mediatypes.length; i++) {
+            mediaTypes[mediatypes[i].type.toLowerCase()] = mediatypes[i].mediatypeid
+          }
+          mediaTypes['photo'] = mediaTypes['image']
+          Item.findAll({
+            attributes: [[sequelize.fn('COUNT', sequelize.col('itemid')), 'count_items']],
+          }).then(function(items){
+            count = items[0].dataValues.count_items
+            //count = 0
+            callback(null, count)
+          })
+        })
       })
     },
     function(count, callback) {
@@ -177,12 +213,13 @@ function run() {
             result = [result[0]]
           }          
           for (var i = 0; i < result.length; i++) { 
+
             var snippet = result[i]['snippet'];
             sourceID = result[i]['id']['videoId'];
             title = snippet.title;
             description = snippet.description;
             sourceCreatedUTC = snippet.publishedAt;
-            sourceUrl = snippet.thumbnails.default.url;
+            sourceUrl = "https://www.youtube.com/watch?v="+result[i].id.videoId
             data = pushToArray(data, 'youtube', sourceID, title, description, sourceCreatedUTC, sourceUrl)
           }
         }
@@ -215,33 +252,35 @@ function run() {
               }
             }
             callback(null, count, data, media);
-      });		    	
+      })
     },
     function(count, data, media, callback) {
       console.log("facebook posts.")
-      var FB = require('fb');
-      FB.api(CREDENTIALS.facebook.brandId + '/feed', { access_token: CREDENTIALS.facebook.access_token }, function(res) {                    
+      var FB = require('fb');      
+      FB.api('nike/feed', { fields: "created_time, name, link, type, message, story, full_picture, source", access_token: CREDENTIALS.facebook.access_token }, function(res) {                    
         if (res.data.length > 0) {
+
           console.log("got "+ res.data.length + " facebook posts")
           result = res.data
+          console.log(result)
           if(count != 0){
             result = [result[0]]
           }          
           for (var i = 0; i < result.length; i++) { 
             post = result[i]
+            console.log(post)
             if (post.type != undefined){
               type = post.type
-              if(type == "photo") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.picture})   
+              if(type == "photo") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.full_picture})   
               if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.source})
-            }            
-         	  data = pushToArray(data, 'facebook', post.id, post.message, post.story, post.created_time, "")
+            }        
+         	  data = pushToArray(data, 'facebook', post.id, post.name, post.message, post.created_time, post.link)
           }
         }
         callback(null, data, media);
-      });		    	
-	    },
+      })
+    },
     function(data, media, callback) {
-    	//console.log(media)
     	sourceids = data.map(function(item){ return item['sourceid'] })
     	Item.findAll({
     		where: {

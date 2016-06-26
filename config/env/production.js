@@ -1,12 +1,5 @@
 module.exports = {
     "db_url": process.env.DATABASE_URL,
-    "pg": {
-        "user": "postgres",
-        "password": "www12345",
-        "database": "aggregator",
-        "port": 5432,
-        "host": "localhost"
-    },
     "schedule": {
         "time": "*/2 * * * *"
     },
