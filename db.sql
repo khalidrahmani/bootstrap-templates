@@ -108,5 +108,12 @@ INSERT INTO itemtype (itemtypeid, name, iconurl) VALUES (7, 'Tumblr', 'https://c
 INSERT INTO mediatype (mediatypeid, type) VALUES (1, 'Video');
 INSERT INTO mediatype (mediatypeid, type) VALUES (2, 'Image');
 
-/* heroku pg:psql   to login to heroku database */
-/* node bin/exec_api.js */
+
+/* heroku git:clone -a myapp */
+/* add heroku postgres addon                      */
+/* heroku config:add NODE_ENV=production          */
+
+/* heroku pg:psql   to login to heroku database   */
+/* exec the db.sql file                           */
+/* add heroku scheduler addon                     */
+/* schedule new job every 10 min with node bin/exec_api.js                           */

@@ -197,10 +197,10 @@ function run() {
           consumer_secret: CREDENTIALS.tumblr.consumer_secret,
           token: CREDENTIALS.tumblr.token,
           token_secret: CREDENTIALS.tumblr.token_secret
-      };
+      };      
       var blog = new tumblr.Blog(CREDENTIALS.tumblr.brandTitle, oauth);
-      blog.text({ limit: 50 }, function(error, response) {
-          if (response.posts.length > 0) {
+      blog.text({}, function(error, response) {
+          if (response.posts && response.posts.length > 0) {
             console.log("got "+ response.posts.length + " tumbler posts")
             result = response.posts
             if(count != 0){
