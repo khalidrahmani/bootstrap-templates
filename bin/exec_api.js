@@ -161,7 +161,7 @@ function run() {
           part: 'id, snippet',
           type: 'video',
           q: CREDENTIALS.youtube.title,
-          maxResults: 100,
+          maxResults: 50,
           order: 'date',
           safeSearch: 'moderate',
           videoEmbeddable: true
