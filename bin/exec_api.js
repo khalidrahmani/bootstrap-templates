@@ -80,6 +80,7 @@ function run() {
       ig.use({ access_token: CREDENTIALS.instagram.access_token })        
         ig.user_media_recent(CREDENTIALS.instagram.brandId, {count: 100}, function(err, result, remaining, limit) {
           if (result.length > 0) {
+            console.log("got "+ result.length + " instagram posts")
             if(count != 0){
               result = [result[0]]
             }
@@ -102,6 +103,7 @@ function run() {
       var pinterest = PDK.init(CREDENTIALS.pinterest.token);      
       pinterest.api('boards/' + CREDENTIALS.pinterest.user_board + '/pins',{ qs: {fields: 'id,created_at,note,link,image,media,attribution' }}).then(function(result) { //'boards/cocacola/holiday/pins/'        
         if (result.data.length > 0) {
+          console.log("got "+ result.data.length + " pinterest posts")
           result = result.data
           if(count != 0){
             result = [result[0]]
@@ -133,7 +135,8 @@ function run() {
       });
 
       twitter_client.get('search/tweets', { q: CREDENTIALS.twitter.title }, function(error, tweets, response) {                    
-        if (tweets.statuses.length > 0) {
+        if (tweets.statuses && tweets.statuses.length > 0) {
+          console.log("got "+ tweets.statuses.length + " twitter posts")
           result = tweets.statuses
           if(count != 0){
             result = [result[0]]
@@ -167,7 +170,8 @@ function run() {
           videoEmbeddable: true
       }, (err, response) => {
         var sourceID, title, description, sourceCreatedUTC, sourceUrl;
-        if (response.items.length > 0) {
+        if (response.items && response.items.length > 0) {
+          console.log("got "+ response.items.length + " youtube posts")
           result = response.items
           if(count != 0){
             result = [result[0]]
@@ -197,6 +201,7 @@ function run() {
       var blog = new tumblr.Blog(CREDENTIALS.tumblr.brandTitle, oauth);
       blog.text({ limit: 100 }, function(error, response) {
           if (response.posts.length > 0) {
+            console.log("got "+ response.posts.length + " tumbler posts")
             result = response.posts
             if(count != 0){
               result = [result[0]]
@@ -217,6 +222,7 @@ function run() {
       var FB = require('fb');
       FB.api(CREDENTIALS.facebook.brandId + '/feed', { access_token: CREDENTIALS.facebook.access_token }, function(res) {                    
         if (res.data.length > 0) {
+          console.log("got "+ res.data.length + " facebook posts")
           result = res.data
           if(count != 0){
             result = [result[0]]
