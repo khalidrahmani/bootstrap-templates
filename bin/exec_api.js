@@ -1,47 +1,47 @@
 var CREDENTIALS  = require('../config/config')
-	 ,async        = require('async')
-	 ,moment       = require('moment')
-	 ,pg           = require('pg')
-	 ,Sequelize    = require('sequelize')
-	 ,sequelize    = new Sequelize(CREDENTIALS.db_url)
-	 ,itemTypes    = {} 
-	 ,mediaTypes   = {} 
-	 ,Item         = sequelize.define('item', {
-				itemtypeid: 			Sequelize.INTEGER,
-				areaid:           Sequelize.INTEGER,
-				sourceid: 		  	Sequelize.STRING,
-				title:    				Sequelize.TEXT,
-				description: 			Sequelize.TEXT,
-				sourceurl: 				Sequelize.STRING,
-				sourcecreatedutc: Sequelize.STRING,
-				createdutc:       Sequelize.STRING,
-				viewcount:  			Sequelize.INTEGER,
-				coordinatexy:  		Sequelize.STRING,
-				labelalignment:  	Sequelize.STRING,				
-			  itemid: {
-			    type: Sequelize.INTEGER,
-			    primaryKey: true,
-			    autoIncrement: true
-		  	}		
-			}, {
-				timestamps: true, 
-				updatedAt: false,
-				createdAt: 'createdutc',		
-				freezeTableName: true,
-			})
-	 ,Media        = sequelize.define('media', {
-				itemid: 			    Sequelize.INTEGER,				
-				mediatypeid:      Sequelize.INTEGER,
-				mediaurl: 		  	Sequelize.STRING,			
-			  mediaid	: {
-			    type: Sequelize.INTEGER,
-			    primaryKey: true,
-			    autoIncrement: true
-		  	}		
-			}, {
-				timestamps: false,
-				freezeTableName: true,
-			})
+   ,async        = require('async')
+   ,moment       = require('moment')
+   ,pg           = require('pg')
+   ,Sequelize    = require('sequelize')
+   ,sequelize    = new Sequelize(CREDENTIALS.db_url)
+   ,itemTypes    = {} 
+   ,mediaTypes   = {} 
+   ,Item         = sequelize.define('item', {
+        itemtypeid:       Sequelize.INTEGER,
+        areaid:           Sequelize.INTEGER,
+        sourceid:         Sequelize.STRING,
+        title:            Sequelize.TEXT,
+        description:      Sequelize.TEXT,
+        sourceurl:        Sequelize.STRING,
+        sourcecreatedutc: Sequelize.STRING,
+        createdutc:       Sequelize.STRING,
+        viewcount:        Sequelize.INTEGER,
+        coordinatexy:     Sequelize.STRING,
+        labelalignment:   Sequelize.STRING,       
+        itemid: {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          autoIncrement: true
+        }   
+      }, {
+        timestamps: true, 
+        updatedAt: false,
+        createdAt: 'createdutc',    
+        freezeTableName: true,
+      })
+   ,Media        = sequelize.define('media', {
+        itemid:           Sequelize.INTEGER,        
+        mediatypeid:      Sequelize.INTEGER,
+        mediaurl:         Sequelize.STRING,     
+        mediaid : {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          autoIncrement: true
+        }   
+      }, {
+        timestamps: false,
+        freezeTableName: true,
+      })
    ,MediaType        = sequelize.define('mediatype', {        
         type:         Sequelize.STRING,     
         mediatypeid : {
@@ -70,24 +70,24 @@ function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecre
   var temp = {}
   title       = title || ''
   description = description  || ''
-  temp.itemtypeid 			= itemTypes[itemtypeid]
-  temp.sourceid 				= sourceid.toString()
-  temp.title 						= title.replace(/(\r\n|\n|\r)/gm,"")
-  temp.description 			= description.replace(/(\r\n|\n|\r)/gm,"")
+  temp.itemtypeid       = itemTypes[itemtypeid]
+  temp.sourceid         = sourceid.toString()
+  temp.title            = title.replace(/(\r\n|\n|\r)/gm,"")
+  temp.description      = description.replace(/(\r\n|\n|\r)/gm,"")
   temp.sourcecreatedutc = sourcecreatedutc
-  temp.sourceurl 				= sourceurl
+  temp.sourceurl        = sourceurl
   //temp.areaid         = 24 // need to have data in area table and areatype
-	temp.viewcount 				= 0
-	temp.coordinatexy 		= '(70,4)'
-	temp.labelalignment 	= 'LEFT'
+  temp.viewcount        = 0
+  temp.coordinatexy     = '(70,4)'
+  temp.labelalignment   = 'LEFT'
   _array.push(temp)
   return _array
 }
 
 function run() {
-	console.log("Aggregator initialized, runs every 10 minutes.")
-	console.log("Feeds to be aggregated : " + Object.keys(itemTypes).join(', ') + ".")
-	async.waterfall([
+  console.log("Aggregator initialized, runs every 10 minutes.")
+  console.log("Feeds to be aggregated : " + Object.keys(itemTypes).join(', ') + ".")
+  async.waterfall([
     function(callback) {
       ItemType.findAll({}).then(function(itemtypes){
         for (var i = 0; i < itemtypes.length; i++) {
@@ -110,9 +110,9 @@ function run() {
     },
     function(count, callback) {
       console.log("Instagram posts.")
-  		data 		= [];
-  		media   = [];
-      var ig 	= require('instagram-node').instagram();
+      data    = [];
+      media   = [];
+      var ig  = require('instagram-node').instagram();
       ig.use({ access_token: CREDENTIALS.instagram.access_token })        
         ig.user_media_recent(CREDENTIALS.instagram.brandId, {count: 100}, function(err, result, remaining, limit) {
           if (result.length > 0) {
@@ -135,7 +135,7 @@ function run() {
     },
     function(count, data, media, callback) {
       console.log("Pinterest posts.")
-			var PDK 			= require('node-pinterest');
+      var PDK       = require('node-pinterest');
       var pinterest = PDK.init(CREDENTIALS.pinterest.token);      
       pinterest.api('boards/' + CREDENTIALS.pinterest.user_board + '/pins',{ qs: {fields: 'id,created_at,note,link,image,media,attribution' }}).then(function(result) { //'boards/cocacola/holiday/pins/'        
         if (result.data.length > 0) {
@@ -158,7 +158,7 @@ function run() {
           }
         }
         callback(null, count, data, media);
-      });		    	
+      });         
     },
     function(count, data, media, callback) {
       console.log("twitter posts.")
@@ -182,11 +182,11 @@ function run() {
             if (tweet.entities.media != undefined){ // only media type photo
               media.push({itemid: tweet.id, mediatypeid: mediaTypes['photo'], mediaurl: tweet.entities.media[0].media_url})
             }
-          	data = pushToArray(data, 'twitter', tweet.id, tweet.text, tweet.text, tweet.created_at, '')
+            data = pushToArray(data, 'twitter', tweet.id, tweet.text, tweet.text, tweet.created_at, '')
           }
         }
         callback(null, count, data, media);
-      });		    	
+      });         
     },
     function(count, data, media, callback) {
       console.log("Youtube posts.")
@@ -224,7 +224,7 @@ function run() {
           }
         }
         callback(null, count, data, media);
-      });		    	
+      });         
     },
     function(count, data, media, callback) {
       console.log("tumblr posts.")
@@ -248,7 +248,7 @@ function run() {
               type = post.type
               if(type == "photo") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.photos[0].alt_sizes[0].url})   
               if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.player[0].embed_code})
-              	data = pushToArray(data, 'tumblr', post.id, post.title, post.blog_name, post.date, post.post_url)
+                data = pushToArray(data, 'tumblr', post.id, post.title, post.blog_name, post.date, post.post_url)
               }
             }
             callback(null, count, data, media);
@@ -257,70 +257,67 @@ function run() {
     function(count, data, media, callback) {
       console.log("facebook posts.")
       var FB = require('fb');      
-      FB.api('nike/feed', { fields: "created_time, name, link, type, message, story, full_picture, source", access_token: CREDENTIALS.facebook.access_token }, function(res) {                    
+      FB.api(CREDENTIALS.facebook.brandId+'/feed', { fields: "created_time, name, link, type, message, story, full_picture, source", access_token: CREDENTIALS.facebook.access_token }, function(res) {                    
         if (res.data.length > 0) {
-
           console.log("got "+ res.data.length + " facebook posts")
-          result = res.data
-          console.log(result)
+          result = res.data          
           if(count != 0){
             result = [result[0]]
           }          
           for (var i = 0; i < result.length; i++) { 
-            post = result[i]
-            console.log(post)
+            post = result[i]          
             if (post.type != undefined){
               type = post.type
               if(type == "photo") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.full_picture})   
               if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.source})
             }        
-         	  data = pushToArray(data, 'facebook', post.id, post.name, post.message, post.created_time, post.link)
+            data = pushToArray(data, 'facebook', post.id, post.name, post.message, post.created_time, post.link)
           }
         }
         callback(null, data, media);
       })
     },
     function(data, media, callback) {
-    	sourceids = data.map(function(item){ return item['sourceid'] })
-    	Item.findAll({
-    		where: {
-    			sourceid: {$in: sourceids}
-    		},
-    		attributes: ['sourceid']
-    	}).then(function(rows){
-    		existingdata = rows.map(function(row){ return row['dataValues']['sourceid'].toString() })
-    		for(var i = data.length - 1; i >= 0; i--) {	
-			    if(existingdata.indexOf(data[i]['sourceid'].toString()) > -1){
-			      data.splice(i, 1)
-			    }
-				}    		
-				Item.bulkCreate(data).then(function(items) {	
-					savedsourceids = items.map(function(row){ return row['dataValues']['sourceid'].toString() }) // data.map(function(item){ return item['sourceid'] })		
-		    	Item.findAll({
-		    		where: {
-		    			sourceid: {$in: savedsourceids}
-		    		},
-		    		attributes: ['itemid', 'sourceid']
-		    	}).then(function(items){	
-		    		_items = {}	
-		    		_media = []		
-		    		for (var i = 0; i < items.length; i++) {
-		    			_items[items[i].sourceid] = items[i].itemid
-		    		}
-		    		for (var i = 0; i < media.length; i++) {
-		    			if(_items[media[i].itemid] != undefined) _media.push({itemid: _items[media[i].itemid], mediatypeid: media[i].mediatypeid, mediaurl: media[i].mediaurl})
-		    		}		    		
-		    		Media.bulkCreate(_media).then(function(savedmedia) {		    			
-	  					callback(null, _items)
-	  				})
-	  			})
-				})
-    	})
-	  }
-	], function (err, result) {
+      sourceids = data.map(function(item){ return item['sourceid'] })
+      Item.findAll({
+        where: {
+          sourceid: {$in: sourceids}
+        },
+        attributes: ['sourceid']
+      }).then(function(rows){
+        existingdata = rows.map(function(row){ return row['dataValues']['sourceid'].toString() })
+        for(var i = data.length - 1; i >= 0; i--) { 
+          if(existingdata.indexOf(data[i]['sourceid'].toString()) > -1){
+            data.splice(i, 1)
+          }
+        }       
+        Item.bulkCreate(data).then(function(items) {  
+          savedsourceids = items.map(function(row){ return row['dataValues']['sourceid'].toString() }) // data.map(function(item){ return item['sourceid'] })   
+          Item.findAll({
+            where: {
+              sourceid: {$in: savedsourceids}
+            },
+            attributes: ['itemid', 'sourceid']
+          }).then(function(items){  
+            _items = {} 
+            _media = []   
+            for (var i = 0; i < items.length; i++) {
+              _items[items[i].sourceid] = items[i].itemid
+            }
+            for (var i = 0; i < media.length; i++) {
+              if(_items[media[i].itemid] != undefined) _media.push({itemid: _items[media[i].itemid], mediatypeid: media[i].mediatypeid, mediaurl: media[i].mediaurl})
+            }           
+            Media.bulkCreate(_media).then(function(savedmedia) {              
+              callback(null, _items)
+            })
+          })
+        })
+      })
+    }
+  ], function (err, result) {
       if(err) console.log(err)
       else    console.log("finished")
-	})  	
+  })    
 }
 
 run()
