@@ -26,8 +26,7 @@
     "pg": "*",
     "sequelize": "*",    
     "moment": "*",  
-    "instagram-node": "*",
-    "cheerio": "*"        
+    "instagram-node": "*" 
   },
   "devDependencies": {    
     "nodemon": "latest"

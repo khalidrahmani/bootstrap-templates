@@ -2,7 +2,6 @@ var CREDENTIALS  = require('../config/config')
    ,async        = require('async')
    ,moment       = require('moment')
    ,request      = require('request')
-   ,cheerio      = require('cheerio')   
    ,pg           = require('pg')
    ,Sequelize    = require('sequelize')
    ,sequelize    = new Sequelize(CREDENTIALS.db_url)
@@ -137,19 +136,7 @@ function run() {
       })
     },
     function(count, data, media, callback) {
-      console.log("Pinterest posts.")
-      boards = []
-      /*
-      request.get({url:"https://www.pinterest.com/"+CREDENTIALS.pinterest.userName}, function (error, response, body) {      
-        var $ = cheerio.load(body);
-        $('a.boardLinkWrapper').each(function(i, element){          
-          boards.push($(this).attr('href'))          
-        })             
-        getPins(boards, 0, data, media, function(pinscount, _data, _media){
-          console.log("got "+ pinscount + " pinterest posts.")
-          callback(null, count, _data, _media)
-        })
-      })*/
+      console.log("Pinterest posts.")      
       getPins(CREDENTIALS.pinterest.user_boards, 0, data, media, function(pinscount, _data, _media){
         console.log("got "+ pinscount + " pinterest posts.")
         callback(null, count, _data, _media)
