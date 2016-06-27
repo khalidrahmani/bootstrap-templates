@@ -47,7 +47,7 @@ module.exports = {
         "appId": "4836125079951655295",
         "appSecret": "5649b1fd57c762fdae1547c33069b2a5b1bb59813daed5ca70feed1211383afe",
         "userName": "cartier",
-        "user_board": ["cartier/calibre-de-cartier-diver", "cartier/jeanne-toussaint-louis-cartier-collection"]
+        "user_boards": ["cartier/calibre-de-cartier-diver", "cartier/jeanne-toussaint-louis-cartier-collection", "cartier/winter-tale-gifts-selection"]
     },
     "twitter": {
         "consumer_key": "gOWZTWEdLocq05v8vdsnKtRYd",
@@ -59,4 +59,3 @@ module.exports = {
         "brandId": "60659498"
     }
 }
-
