@@ -110,7 +110,6 @@ INSERT INTO mediatype (mediatypeid, type) VALUES (2, 'Image');
 /* heroku git:clone -a myapp                      */
 /* add heroku postgres addon                      */
 /* heroku config:add NODE_ENV=production          */
-
 /* heroku pg:psql   to login to heroku database   */
 /* exec the db.sql file                           */
 /* add heroku scheduler addon                     */
