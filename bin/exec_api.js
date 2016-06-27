@@ -2,9 +2,12 @@ var CREDENTIALS  = require('../config/config')
    ,async        = require('async')
    ,moment       = require('moment')
    ,request      = require('request')
+   ,cheerio      = require('cheerio')   
    ,pg           = require('pg')
    ,Sequelize    = require('sequelize')
    ,sequelize    = new Sequelize(CREDENTIALS.db_url)
+   ,PDK          = require('node-pinterest')
+   ,pinterest    = PDK.init(CREDENTIALS.pinterest.token)
    ,itemTypes    = {} 
    ,mediaTypes   = {} 
    ,Item         = sequelize.define('item', {
@@ -132,57 +135,25 @@ function run() {
         }
         callback(null, count, data, media)
       })
-
-      /*
-      var ig  = require('instagram-node').instagram();
-      ig.use({ access_token: CREDENTIALS.instagram.access_token })        
-        ig.user_media_recent(CREDENTIALS.instagram.brandId, {count: 10}, function(err, result, remaining, limit) {
-          console.log(result)
-          console.log(limit)
-          console.log(remaining)
-          
-          if (result.length > 0) {
-            console.log("got "+ result.length + " instagram posts")
-            for (var i = 0; i < result.length; i++) {
-              post = result[i]
-              type = post.type
-              if(type == "image" || type == "video"){
-                if(type == "image") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.images.standard_resolution.url})   
-                if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.videos.standard_resolution.url})         
-                date = moment(post.created_time, 'X').format()
-                text = post.caption != null ? post.caption.text : ''
-                data = pushToArray(data, 'instagram', post.id, text, text, date, post.link)              
-              }
-            }
-          }
-          callback(null, count, data, media);
-        })*/
-
     },
     function(count, data, media, callback) {
       console.log("Pinterest posts.")
-      var PDK       = require('node-pinterest');
-      var pinterest = PDK.init(CREDENTIALS.pinterest.token);    
-      // TODO should get all pins from company  
-      pinterest.api('boards/' + CREDENTIALS.pinterest.user_board[0] + '/pins',{ qs: {fields: 'id,created_at,note,link,image,media,attribution' }}).then(function(result) { //'boards/cocacola/holiday/pins/'        
-        if (result.data.length > 0) {
-          console.log("got "+ result.data.length + " pinterest posts")
-          result = result.data
-          for (var i = 0; i < result.length; i++) {
-            pin = result[i]            
-            if(pin.media != undefined){
-              if(pin.media.type == 'image' && pin.image && pin.image.original != undefined){
-                media.push({itemid: pin.id, mediatypeid: mediaTypes['image'], mediaurl: pin.image.original.url})   
-              }
-              if(pin.media.type == 'video' && pin.attribution != undefined){
-                media.push({itemid: pin.id, mediatypeid: mediaTypes['video'], mediaurl: pin.attribution.url})   
-              }
-              data = pushToArray(data, 'pinterest', pin.id, pin.note, pin.note, pin.created_at, pin.link)
-            }          
-          }
-        }
-        callback(null, count, data, media);
-      });         
+      boards = []
+      /*
+      request.get({url:"https://www.pinterest.com/"+CREDENTIALS.pinterest.userName}, function (error, response, body) {      
+        var $ = cheerio.load(body);
+        $('a.boardLinkWrapper').each(function(i, element){          
+          boards.push($(this).attr('href'))          
+        })             
+        getPins(boards, 0, data, media, function(pinscount, _data, _media){
+          console.log("got "+ pinscount + " pinterest posts.")
+          callback(null, count, _data, _media)
+        })
+      })*/
+      getPins(CREDENTIALS.pinterest.user_boards, 0, data, media, function(pinscount, _data, _media){
+        console.log("got "+ pinscount + " pinterest posts.")
+        callback(null, count, _data, _media)
+      })      
     },
     function(count, data, media, callback) {
       console.log("twitter posts.")
@@ -334,6 +305,42 @@ function run() {
       if(err) console.log(err)
       else    console.log("finished")
   })    
+}
+
+function getPins(boards, pinscount, data, media, cb){    
+  if (boards.length == 0) cb(pinscount, data, media)
+  else{
+    var board = boards.pop()  
+    console.log("fetch pinterest board : "+ board)
+
+  try{
+    pinterest.api('boards/' + board).then(function(_board) {       
+      var title = _board.data.name
+      pinterest.api('boards/' + board + '/pins',{ qs: {fields: 'id,created_at,note,link,image,media,attribution' }}).then(function(result) {       
+        if (result.data.length > 0) {        
+          result = result.data
+          for (var i = 0; i < result.length; i++) {
+            pin = result[i]            
+            if(pin.media != undefined){            
+              if(pin.media.type == 'image' && pin.image && pin.image.original != undefined){
+                media.push({itemid: pin.id, mediatypeid: mediaTypes['image'], mediaurl: pin.image.original.url})   
+              }
+              if(pin.media.type == 'video' && pin.attribution != undefined){
+                media.push({itemid: pin.id, mediatypeid: mediaTypes['video'], mediaurl: pin.attribution.url})   
+              }
+              data = pushToArray(data, 'pinterest', pin.id, title, pin.note, pin.created_at, pin.link)
+              pinscount += 1
+            }
+          }
+        }
+          getPins(boards, pinscount, data, media, cb)  
+        })
+      })
+    }
+    catch (e){
+        getPins(boards, pinscount, data, media, cb)  
+    }
+  }  
 }
 
 run()
