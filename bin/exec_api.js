@@ -7,6 +7,11 @@ var CREDENTIALS  = require('../config/config')
    ,sequelize    = new Sequelize(CREDENTIALS.db_url)
    ,PDK          = require('node-pinterest')
    ,pinterest    = PDK.init(CREDENTIALS.pinterest.token)
+   ,google = require('googleapis')
+   ,youtubeV3 = google.youtube({
+        version: CREDENTIALS.youtube.version,
+        auth: CREDENTIALS.youtube.api_key
+      })
    ,itemTypes    = {} 
    ,mediaTypes   = {} 
    ,Item         = sequelize.define('item', {
@@ -70,20 +75,22 @@ var CREDENTIALS  = require('../config/config')
       })   
 
 function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecreatedutc, sourceurl) {
-  var temp = {}
-  title       = title || ''
-  description = description  || ''
-  temp.itemtypeid       = itemTypes[itemtypeid]
-  temp.sourceid         = sourceid.toString()
-  temp.title            = title.replace(/(\r\n|\n|\r)/gm,"")
-  temp.description      = description.replace(/(\r\n|\n|\r)/gm,"")
-  temp.sourcecreatedutc = sourcecreatedutc
-  temp.sourceurl        = sourceurl
-  //temp.areaid         = 24 // need to have data in area table and areatype
-  temp.viewcount        = 0
-  temp.coordinatexy     = '(70,4)'
-  temp.labelalignment   = 'LEFT'
-  _array.push(temp)
+  if((sourceurl != "" && sourceurl != null) || itemtypeid == "youtube"){
+    var temp = {}
+    title       = title || ''
+    description = description  || ''
+    temp.itemtypeid       = itemTypes[itemtypeid]
+    temp.sourceid         = sourceid.toString()
+    temp.title            = title.replace(/(\r\n|\n|\r)/gm,"")
+    temp.description      = description.replace(/(\r\n|\n|\r)/gm,"")
+    temp.sourcecreatedutc = sourcecreatedutc
+    temp.sourceurl        = sourceurl
+    //temp.areaid         = 24 // need to have data in area table and areatype
+    temp.viewcount        = 0
+    temp.coordinatexy     = '(70,4)'
+    temp.labelalignment   = 'LEFT'
+    _array.push(temp)    
+  }
   return _array
 }
 
@@ -144,6 +151,7 @@ function run() {
     },
     function(count, data, media, callback) {
       console.log("twitter posts.")
+      var j = 0
       var Twitter = require('twitter');
       var twitter_client = new Twitter({
         consumer_key: CREDENTIALS.twitter.consumer_key,
@@ -153,27 +161,24 @@ function run() {
       });
       twitter_client.get('statuses/user_timeline', { user_id: CREDENTIALS.twitter.brandId }, function(error, tweets, response) {
         if (tweets && tweets.length > 0) {
-          console.log("got "+ tweets.length + " twitter posts")
+          console
           result = tweets
           for (var i = 0; i < result.length; i++) {        
             tweet = result[i]            
             if (tweet.entities.media != undefined){ // only media type photo
               media.push({itemid: tweet.id, mediatypeid: mediaTypes['photo'], mediaurl: tweet.entities.media[0].media_url})
               data = pushToArray(data, 'twitter', tweet.id, tweet.text, tweet.text, tweet.created_at, tweet.entities.media[0].expanded_url)
+              j++
             }            
           }
         }
+        console.log("got "+ j + " twitter posts")
         callback(null, count, data, media);
       });         
     },
     function(count, data, media, callback) {
       console.log("Youtube posts.")
-      var youtubeV3;
-      var google = require('googleapis'),
-      youtubeV3 = google.youtube({
-        version: CREDENTIALS.youtube.version,
-        auth: CREDENTIALS.youtube.api_key
-      });
+      var j = 0
       var request = youtubeV3.search.list({
           part: 'id, snippet',
           type: 'video',
@@ -184,13 +189,11 @@ function run() {
           videoEmbeddable: true
       }, (err, response) => {
         var sourceID, title, description, sourceCreatedUTC, sourceUrl;
-        if (response && response.items && response.items.length > 0) {
-          console.log("got "+ response.items.length + " youtube posts")
-          //console.log(response.items)
+        if (response && response.items && response.items.length > 0) {          
           result = response.items
-          if(count != 0){
-            result = [result[0]]
-          }
+          //if(count != 0){
+          //  result = [result[0]]
+          //}
           for (var i = 0; i < result.length; i++) { 
             var snippet = result[i]['snippet'];
             sourceID = result[i]['id']['videoId'];
@@ -199,13 +202,16 @@ function run() {
             sourceCreatedUTC = snippet.publishedAt;
             sourceUrl = "https://www.youtube.com/watch?v="+result[i].id.videoId
             data = pushToArray(data, 'youtube', sourceID, title, description, sourceCreatedUTC, sourceUrl)
+            j++
           }
+          console.log("got "+ j + " youtube posts")
         }
         callback(null, count, data, media);
       });         
     },
     function(count, data, media, callback) {
       console.log("tumblr posts.")
+      var j = 0;
       var tumblr = require('tumblr');
       var oauth = {
           consumer_key: CREDENTIALS.tumblr.consumer_key,
@@ -216,7 +222,7 @@ function run() {
       var blog = new tumblr.Blog(CREDENTIALS.tumblr.brandId, oauth);
       blog.posts({}, function(error, response) {        
           if (response.posts && response.posts.length > 0) {
-            console.log("got "+ response.posts.length + " tumbler posts")
+            
             result = response.posts
             for (var i = 0; i < result.length; i++) {
               post = result[i]
@@ -225,18 +231,21 @@ function run() {
                 if(type == "photo") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.photos[0].alt_sizes[0].url})
                 if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.player[0].embed_code})
                 data = pushToArray(data, 'tumblr', post.id, post.slug, post.caption, post.date, post.post_url)
+                j++
               }
             }
           }
+          console.log("got "+ j + " tumbler posts")
           callback(null, count, data, media);
       })
     },
     function(count, data, media, callback) {
       console.log("facebook posts.")
       var FB = require('fb');      
+      var j = 0
       FB.api(CREDENTIALS.facebook.brandId+'/feed', { fields: "created_time, name, link, type, message, story, full_picture, source", access_token: CREDENTIALS.facebook.access_token }, function(res) {                    
         if (res.data.length > 0) {
-          console.log("got "+ res.data.length + " facebook posts")
+          
           result = res.data          
           for (var i = 0; i < result.length; i++) { 
             post = result[i]          
@@ -245,9 +254,11 @@ function run() {
               if(type == "photo") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.full_picture})   
               if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.source})
               data = pushToArray(data, 'facebook', post.id, post.name, post.message, post.created_time, post.link)
+              j++
             }
           }
         }
+        console.log("got "+ j + " facebook posts")
         callback(null, data, media);
       })
     },
