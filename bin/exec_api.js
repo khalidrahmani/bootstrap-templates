@@ -174,14 +174,12 @@ function run() {
         params.since_id = latestTweetId
       }
       twitter_client.get('statuses/user_timeline', params, function(error, tweets, response) {
-        if (tweets && tweets.length > 0) {
-          console
-          result = tweets
-          for (var i = 0; i < result.length; i++) {        
-            tweet = result[i]            
+        if (tweets && tweets.length > 0) {        
+          for (var i = 0; i < tweets.length; i++) {        
+            tweet = tweets[i]            
             if ((tweet.entities.media != undefined) && present(tweet.entities.media[0].expanded_url)){ // only media type photo
-              media.push({itemid: tweet.id, mediatypeid: mediaTypes['photo'], mediaurl: tweet.entities.media[0].media_url})
-              data = pushToArray(data, 'twitter', tweet.id, tweet.text, tweet.text, tweet.created_at, tweet.entities.media[0].expanded_url)
+              media.push({itemid: tweet.id_str, mediatypeid: mediaTypes['photo'], mediaurl: tweet.entities.media[0].media_url})
+              data = pushToArray(data, 'twitter', tweet.id_str, tweet.text, tweet.text, tweet.created_at, tweet.entities.media[0].expanded_url)
               j++
             }            
           }
