@@ -171,12 +171,14 @@ function run() {
       var j = 0
       params = { user_id: CREDENTIALS.twitter.brandId }
       if(latestTweetId != null){
+        console.log(latestTweetId)
         params.since_id = latestTweetId
       }
       twitter_client.get('statuses/user_timeline', params, function(error, tweets, response) {
         if (tweets && tweets.length > 0) {        
           for (var i = 0; i < tweets.length; i++) {        
-            tweet = tweets[i]            
+            tweet = tweets[i]     
+            console.log(tweet.id_str)       
             if ((tweet.entities.media != undefined) && present(tweet.entities.media[0].expanded_url)){ // only media type photo
               media.push({itemid: tweet.id_str, mediatypeid: mediaTypes['photo'], mediaurl: tweet.entities.media[0].media_url})
               data = pushToArray(data, 'twitter', tweet.id_str, tweet.text, tweet.text, tweet.created_at, tweet.entities.media[0].expanded_url)
