@@ -75,22 +75,20 @@ var CREDENTIALS  = require('../config/config')
       })   
 
 function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecreatedutc, sourceurl) {
-  if(sourceurl != "" && sourceurl != null){
-    var temp = {}
-    title       = title || ''
-    description = description  || ''
-    temp.itemtypeid       = itemTypes[itemtypeid]
-    temp.sourceid         = sourceid.toString()
-    temp.title            = title.replace(/(\r\n|\n|\r)/gm,"")
-    temp.description      = description.replace(/(\r\n|\n|\r)/gm,"")
-    temp.sourcecreatedutc = sourcecreatedutc
-    temp.sourceurl        = sourceurl
-    //temp.areaid         = 24 // need to have data in area table and areatype
-    temp.viewcount        = 0
-    temp.coordinatexy     = '(70,4)'
-    temp.labelalignment   = 'LEFT'
-    _array.push(temp)    
-  }
+  var temp = {}
+  title       = title || ''
+  description = description  || ''
+  temp.itemtypeid       = itemTypes[itemtypeid]
+  temp.sourceid         = sourceid.toString()
+  temp.title            = title.replace(/(\r\n|\n|\r)/gm,"")
+  temp.description      = description.replace(/(\r\n|\n|\r)/gm,"")
+  temp.sourcecreatedutc = sourcecreatedutc
+  temp.sourceurl        = sourceurl
+  //temp.areaid         = 24 // need to have data in area table and areatype
+  temp.viewcount        = 0
+  temp.coordinatexy     = '(70,4)'
+  temp.labelalignment   = 'LEFT'
+  _array.push(temp)    
   return _array
 }
 
