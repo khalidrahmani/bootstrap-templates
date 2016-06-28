@@ -1,19 +1,27 @@
-var CREDENTIALS  = require('../config/config')
-   ,async        = require('async')
-   ,moment       = require('moment')
-   ,request      = require('request')
-   ,pg           = require('pg')
-   ,Sequelize    = require('sequelize')
-   ,sequelize    = new Sequelize(CREDENTIALS.db_url)
-   ,PDK          = require('node-pinterest')
-   ,pinterest    = PDK.init(CREDENTIALS.pinterest.token)
-   ,google = require('googleapis')
-   ,youtubeV3 = google.youtube({
-        version: CREDENTIALS.youtube.version,
-        auth: CREDENTIALS.youtube.api_key
+var CREDENTIALS     = require('../config/config')
+   ,async           = require('async')
+   ,moment          = require('moment')
+   ,request         = require('request')
+   ,pg              = require('pg')
+   ,Sequelize       = require('sequelize')
+   ,sequelize       = new Sequelize(CREDENTIALS.db_url)
+   ,PDK             = require('node-pinterest')
+   ,pinterest       = PDK.init(CREDENTIALS.pinterest.token)
+   ,google          = require('googleapis')
+   ,youtubeV3       = google.youtube({ version: CREDENTIALS.youtube.version,  auth: CREDENTIALS.youtube.api_key })
+   ,Twitter         = require('twitter')
+   ,twitter_client  = new Twitter({
+        consumer_key: CREDENTIALS.twitter.consumer_key,
+        consumer_secret: CREDENTIALS.twitter.consumer_secret,
+        access_token_key: CREDENTIALS.twitter.access_token,
+        access_token_secret: CREDENTIALS.twitter.access_token_secret
       })
    ,itemTypes    = {} 
    ,mediaTypes   = {} 
+   ,youtubeLatestPuplishDate = null
+   ,latestTweetId            = null
+   ,latestFacebookPostDate     = null
+   ,latestInstagramPostDate     = null
    ,Item         = sequelize.define('item', {
         itemtypeid:       Sequelize.INTEGER,
         areaid:           Sequelize.INTEGER,
@@ -87,30 +95,37 @@ function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecre
   //temp.areaid         = 24 // need to have data in area table and areatype
   temp.viewcount        = 0
   temp.coordinatexy     = '(70,4)'
-  temp.labelalignment   = 'LEFT'
+  temp.labelalignment   = 'LEFT'  
   _array.push(temp)    
   return _array
 }
 
 function run() {
-  console.log("Aggregator initialized, runs every 10 minutes.")
-  console.log("Feeds to be aggregated : " + Object.keys(itemTypes).join(', ') + ".")
+  console.log("Aggregator initialized, runs every 10 minutes.")  
   async.waterfall([
-    function(callback) {
-      ItemType.findAll({}).then(function(itemtypes){
-        for (var i = 0; i < itemtypes.length; i++) {
-          itemTypes[itemtypes[i].name.toLowerCase()] = itemtypes[i].itemtypeid
-        }
-        MediaType.findAll({}).then(function(mediatypes){          
-          for (var i = 0; i < mediatypes.length; i++) {
-            mediaTypes[mediatypes[i].type.toLowerCase()] = mediatypes[i].mediatypeid
+    function(callback) {         
+        ItemType.findAll({}).then(function(itemtypes){
+          for (var i = 0; i < itemtypes.length; i++) {
+            itemTypes[itemtypes[i].name.toLowerCase()] = itemtypes[i].itemtypeid
           }
-          mediaTypes['photo'] = mediaTypes['image']
-          Item.findAll({
-            attributes: [[sequelize.fn('COUNT', sequelize.col('itemid')), 'count_items']],
-          }).then(function(items){
-            count = items[0].dataValues.count_items
-            callback(null, count)
+          console.log("Feeds to be aggregated : " + Object.keys(itemTypes).join(', ') + ".")
+          MediaType.findAll({}).then(function(mediatypes){          
+            for (var i = 0; i < mediatypes.length; i++) {
+              mediaTypes[mediatypes[i].type.toLowerCase()] = mediatypes[i].mediatypeid
+            }
+            mediaTypes['photo'] = mediaTypes['image']            
+              Item.findOne({ where: { itemtypeid: itemTypes['youtube'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(youtube){   
+                if(youtube && youtube.sourcecreatedutc) youtubeLatestPuplishDate = youtube.sourcecreatedutc
+              Item.findOne({ where: { itemtypeid: itemTypes['twitter'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(tweet){       
+                if(tweet) latestTweetId = tweet.sourceid
+                Item.findOne({ where: { itemtypeid: itemTypes['facebook'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(facebookpost){       
+                  if(facebookpost) latestFacebookPostDate = moment(facebookpost.sourcecreatedutc).format('X')
+                    Item.findOne({ where: { itemtypeid: itemTypes['instagram'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(instagrampost){       
+                      if(instagrampost) latestInstagramPostDate = moment(instagrampost.sourcecreatedutc).format('X')                      
+                      callback(null, 12)            
+                    })
+                })
+              })
           })
         })
       })
@@ -123,10 +138,14 @@ function run() {
         if (result && result.items.length > 0) {
           result = result.items
           var j = 0
-          for (var i = 0; i < result.length; i++) {            
+          for (var i = 0; i < result.length; i++) {
+            skip = false
             post = result[i]
-            type = post.type
-            if(present(post.link) && (type == "image" || type == "video")){
+            type = post.type            
+            if(latestInstagramPostDate != null) {
+              if (post.created_time <= latestInstagramPostDate) skip = true
+            }            
+            if(skip == false && present(post.link) && (type == "image" || type == "video")){
               if(type == "image") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.images.standard_resolution.url})   
               if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.videos.standard_resolution.url})         
               date = moment(post.created_time, 'X').format()
@@ -150,14 +169,11 @@ function run() {
     function(count, data, media, callback) {
       console.log("twitter posts.")
       var j = 0
-      var Twitter = require('twitter');
-      var twitter_client = new Twitter({
-        consumer_key: CREDENTIALS.twitter.consumer_key,
-        consumer_secret: CREDENTIALS.twitter.consumer_secret,
-        access_token_key: CREDENTIALS.twitter.access_token,
-        access_token_secret: CREDENTIALS.twitter.access_token_secret
-      });
-      twitter_client.get('statuses/user_timeline', { user_id: CREDENTIALS.twitter.brandId }, function(error, tweets, response) {
+      params = { user_id: CREDENTIALS.twitter.brandId }
+      if(latestTweetId != null){
+        params.since_id = latestTweetId
+      }
+      twitter_client.get('statuses/user_timeline', params, function(error, tweets, response) {
         if (tweets && tweets.length > 0) {
           console
           result = tweets
@@ -176,8 +192,8 @@ function run() {
     },
     function(count, data, media, callback) {
       console.log("Youtube posts.")
-      var j = 0
-      var request = youtubeV3.search.list({
+      var  j = 0
+      params = {
           part: 'id, snippet',
           type: 'video',
           channelId: CREDENTIALS.youtube.channelId,
@@ -185,13 +201,14 @@ function run() {
           order: 'date',
           safeSearch: 'moderate',
           videoEmbeddable: true
-      }, (err, response) => {
+      }
+      if(youtubeLatestPuplishDate != null){
+        params.publishedAfter = moment(youtubeLatestPuplishDate).format()
+      }
+      var request = youtubeV3.search.list(params,(err, response) => {
         var sourceID, title, description, sourceCreatedUTC, sourceUrl;
         if (response && response.items && response.items.length > 0) {          
           result = response.items
-          //if(count != 0){
-          //  result = [result[0]]
-          //}
           for (var i = 0; i < result.length; i++) {
            if(present(result[i].id.videoId)) {
             var snippet = result[i]['snippet'];
@@ -203,14 +220,14 @@ function run() {
             data = pushToArray(data, 'youtube', sourceID, title, description, sourceCreatedUTC, sourceUrl)
             j++
           }
-          }
-          console.log("got "+ j + " youtube posts")
+          }          
         }
+        console.log("got "+ j + " youtube posts")
         callback(null, count, data, media);
       });         
     },
-    function(count, data, media, callback) {
-      console.log("tumblr posts.")
+    function(count, data, media, callback) { 
+      console.log("tumblr posts.") // No specific parameter to get latest posts after a date or id.
       var j = 0;
       var tumblr = require('tumblr');
       var oauth = {
@@ -243,11 +260,13 @@ function run() {
       console.log("facebook posts.")
       var FB = require('fb');      
       var j = 0
-      FB.api(CREDENTIALS.facebook.brandId+'/feed', { fields: "created_time, name, link, type, message, story, full_picture, source", access_token: CREDENTIALS.facebook.access_token }, function(res) {                    
+      var params = { fields: "created_time, name, link, type, message, story, full_picture, source", access_token: CREDENTIALS.facebook.access_token }
+      if(latestFacebookPostDate != null) params.since = latestFacebookPostDate
+      FB.api(CREDENTIALS.facebook.brandId+'/feed', params, function(res) {                    
         if (res.data.length > 0) {          
           result = res.data          
           for (var i = 0; i < result.length; i++) { 
-            post = result[i]          
+            post = result[i]
             if (present(post.link) && post.type != undefined && (post.type == "photo" || post.type == "video")){
               type = post.type
               if(type == "photo") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.full_picture})   
