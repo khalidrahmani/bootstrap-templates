@@ -92,7 +92,6 @@ function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecre
   temp.description      = description.replace(/(\r\n|\n|\r)/gm,"")
   temp.sourcecreatedutc = sourcecreatedutc
   temp.sourceurl        = sourceurl
-  //temp.areaid         = 24 // need to have data in area table and areatype
   temp.viewcount        = 0
   temp.coordinatexy     = '(70,4)'
   temp.labelalignment   = 'LEFT'  
@@ -122,7 +121,7 @@ function run() {
                   if(facebookpost) latestFacebookPostDate = moment(facebookpost.sourcecreatedutc).format('X')
                     Item.findOne({ where: { itemtypeid: itemTypes['instagram'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(instagrampost){       
                       if(instagrampost) latestInstagramPostDate = moment(instagrampost.sourcecreatedutc).format('X')                      
-                      callback(null, 12)            
+                      callback(null)            
                     })
                 })
               })
@@ -130,7 +129,7 @@ function run() {
         })
       })
     },
-    function(count, callback) { 
+    function(callback) { 
       console.log("Instagram posts.")
       data    = [];
       media   = [];
@@ -156,17 +155,17 @@ function run() {
           }
           console.log("got "+ j + " instagram posts")
         }
-        callback(null, count, data, media)
+        callback(null, data, media)
       })
     },
-    function(count, data, media, callback) {
+    function(data, media, callback) {
       console.log("Pinterest posts.")      
       getPins(CREDENTIALS.pinterest.user_boards, 0, data, media, function(pinscount, _data, _media){
         console.log("got "+ pinscount + " pinterest posts.")
-        callback(null, count, _data, _media)
+        callback(null, _data, _media)
       })      
     },
-    function(count, data, media, callback) {
+    function(data, media, callback) {
       console.log("twitter posts.")
       var j = 0
       params = { user_id: CREDENTIALS.twitter.brandId }
@@ -187,10 +186,10 @@ function run() {
           }
         }
         console.log("got "+ j + " twitter posts")
-        callback(null, count, data, media);
+        callback(null, data, media);
       });         
     },
-    function(count, data, media, callback) {
+    function(data, media, callback) {
       console.log("Youtube posts.")
       var  j = 0
       params = {
@@ -223,10 +222,10 @@ function run() {
           }          
         }
         console.log("got "+ j + " youtube posts")
-        callback(null, count, data, media);
+        callback(null, data, media);
       });         
     },
-    function(count, data, media, callback) { 
+    function(data, media, callback) { 
       console.log("tumblr posts.") // No specific parameter to get latest posts after a date or id.
       var j = 0;
       var tumblr = require('tumblr');
@@ -238,8 +237,7 @@ function run() {
       };      
       var blog = new tumblr.Blog(CREDENTIALS.tumblr.brandId, oauth);
       blog.posts({}, function(error, response) {        
-          if (response.posts && response.posts.length > 0) {
-            
+          if (response.posts && response.posts.length > 0) {            
             result = response.posts
             for (var i = 0; i < result.length; i++) {
               post = result[i]
@@ -253,10 +251,10 @@ function run() {
             }
           }
           console.log("got "+ j + " tumbler posts")
-          callback(null, count, data, media);
+          callback(null, data, media);
       })
     },
-    function(count, data, media, callback) {
+    function(data, media, callback) {
       console.log("facebook posts.")
       var FB = require('fb');      
       var j = 0
@@ -294,6 +292,7 @@ function run() {
             data.splice(i, 1)
           }
         }       
+        console.log(data)
         Item.bulkCreate(data).then(function(items) {  
           savedsourceids = items.map(function(row){ return row['dataValues']['sourceid'].toString() }) // data.map(function(item){ return item['sourceid'] })   
           Item.findAll({
