@@ -181,6 +181,7 @@ function run() {
             if ((tweet.entities.media != undefined) && present(tweet.entities.media[0].expanded_url)){ // only media type photo
               media.push({itemid: tweet.id_str, mediatypeid: mediaTypes['photo'], mediaurl: tweet.entities.media[0].media_url})
               data = pushToArray(data, 'twitter', tweet.id_str, tweet.text, tweet.text, tweet.created_at, tweet.entities.media[0].expanded_url)
+              console.log(data)
               j++
             }            
           }
@@ -291,8 +292,7 @@ function run() {
           if(existingdata.indexOf(data[i]['sourceid'].toString()) > -1){
             data.splice(i, 1)
           }
-        }       
-        console.log(data)
+        }
         Item.bulkCreate(data).then(function(items) {  
           savedsourceids = items.map(function(row){ return row['dataValues']['sourceid'].toString() }) // data.map(function(item){ return item['sourceid'] })   
           Item.findAll({
