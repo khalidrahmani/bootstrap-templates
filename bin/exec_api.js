@@ -75,7 +75,7 @@ var CREDENTIALS  = require('../config/config')
       })   
 
 function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecreatedutc, sourceurl) {
-  if((sourceurl != "" && sourceurl != null) || itemtypeid == "youtube"){
+  if(sourceurl != "" && sourceurl != null){
     var temp = {}
     title       = title || ''
     description = description  || ''
@@ -128,7 +128,7 @@ function run() {
           for (var i = 0; i < result.length; i++) {            
             post = result[i]
             type = post.type
-            if(type == "image" || type == "video"){
+            if(present(post.link) && (type == "image" || type == "video")){
               if(type == "image") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.images.standard_resolution.url})   
               if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.videos.standard_resolution.url})         
               date = moment(post.created_time, 'X').format()
@@ -165,7 +165,7 @@ function run() {
           result = tweets
           for (var i = 0; i < result.length; i++) {        
             tweet = result[i]            
-            if (tweet.entities.media != undefined){ // only media type photo
+            if ((tweet.entities.media != undefined) && present(tweet.entities.media[0].expanded_url)){ // only media type photo
               media.push({itemid: tweet.id, mediatypeid: mediaTypes['photo'], mediaurl: tweet.entities.media[0].media_url})
               data = pushToArray(data, 'twitter', tweet.id, tweet.text, tweet.text, tweet.created_at, tweet.entities.media[0].expanded_url)
               j++
@@ -194,7 +194,8 @@ function run() {
           //if(count != 0){
           //  result = [result[0]]
           //}
-          for (var i = 0; i < result.length; i++) { 
+          for (var i = 0; i < result.length; i++) {
+           if(present(result[i].id.videoId)) {
             var snippet = result[i]['snippet'];
             sourceID = result[i]['id']['videoId'];
             title = snippet.title;
@@ -203,6 +204,7 @@ function run() {
             sourceUrl = "https://www.youtube.com/watch?v="+result[i].id.videoId
             data = pushToArray(data, 'youtube', sourceID, title, description, sourceCreatedUTC, sourceUrl)
             j++
+          }
           }
           console.log("got "+ j + " youtube posts")
         }
@@ -227,7 +229,7 @@ function run() {
             for (var i = 0; i < result.length; i++) {
               post = result[i]
               type = post.type
-              if(type == "photo" || type == "video"){
+              if(present(post.post_url) && (type == "photo" || type == "video")) {
                 if(type == "photo") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.photos[0].alt_sizes[0].url})
                 if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.player[0].embed_code})
                 data = pushToArray(data, 'tumblr', post.id, post.slug, post.caption, post.date, post.post_url)
@@ -244,12 +246,11 @@ function run() {
       var FB = require('fb');      
       var j = 0
       FB.api(CREDENTIALS.facebook.brandId+'/feed', { fields: "created_time, name, link, type, message, story, full_picture, source", access_token: CREDENTIALS.facebook.access_token }, function(res) {                    
-        if (res.data.length > 0) {
-          
+        if (res.data.length > 0) {          
           result = res.data          
           for (var i = 0; i < result.length; i++) { 
             post = result[i]          
-            if (post.type != undefined){
+            if (present(post.link) && post.type != undefined){
               type = post.type
               if(type == "photo") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.full_picture})   
               if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.source})
@@ -319,7 +320,7 @@ function getPins(boards, pinscount, data, media, cb){
           result = result.data
           for (var i = 0; i < result.length; i++) {
             pin = result[i]            
-            if(pin.media != undefined){            
+            if(present(pin.link) && pin.media != undefined){            
               if(pin.media.type == 'image' && pin.image && pin.image.original != undefined){
                 media.push({itemid: pin.id, mediatypeid: mediaTypes['image'], mediaurl: pin.image.original.url})   
               }
@@ -340,5 +341,7 @@ function getPins(boards, pinscount, data, media, cb){
     }
   }  
 }
-
+function present(argument) {
+  return (argument != '' && argument != null && argument != undefined)
+}
 run()
