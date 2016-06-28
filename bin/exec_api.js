@@ -87,7 +87,7 @@ function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecre
   title       = title         || ''
   description = description   || ''
   temp.itemtypeid       = itemTypes[itemtypeid]
-  temp.sourceid         = sourceid.toString()
+  temp.sourceid         = sourceid//.toString()
   temp.title            = title.replace(/(\r\n|\n|\r)/gm,"")
   temp.description      = description.replace(/(\r\n|\n|\r)/gm,"")
   temp.sourcecreatedutc = sourcecreatedutc
