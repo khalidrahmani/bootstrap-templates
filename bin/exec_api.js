@@ -76,8 +76,8 @@ var CREDENTIALS  = require('../config/config')
 
 function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecreatedutc, sourceurl) {
   var temp = {}
-  title       = title || ''
-  description = description  || ''
+  title       = title         || ''
+  description = description   || ''
   temp.itemtypeid       = itemTypes[itemtypeid]
   temp.sourceid         = sourceid.toString()
   temp.title            = title.replace(/(\r\n|\n|\r)/gm,"")
@@ -248,7 +248,7 @@ function run() {
           result = res.data          
           for (var i = 0; i < result.length; i++) { 
             post = result[i]          
-            if (present(post.link) && post.type != undefined){
+            if (present(post.link) && post.type != undefined && (post.type == "photo" || post.type == "video")){
               type = post.type
               if(type == "photo") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.full_picture})   
               if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.source})

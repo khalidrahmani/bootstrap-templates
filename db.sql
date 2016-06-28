@@ -114,3 +114,11 @@ INSERT INTO mediatype (mediatypeid, type) VALUES (2, 'Image');
 /* exec the db.sql file                           */
 /* add heroku scheduler addon                     */
 /* schedule new job every 10 min with node bin/exec_api.js                           */
+
+/*
+
+select i.itemid, i.sourceid, it.name,i.sourceurl,i.title, i.description, m.mediaurl, mt.type
+from item i inner join itemtype it on i.itemtypeid = it.itemtypeid left outer join media as m on m.itemid = i.itemid 
+left outer join mediatype mt on m.mediatypeid = mt.mediatypeid order by it.name , sourceID;
+
+*/
