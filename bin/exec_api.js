@@ -3,6 +3,8 @@ var CREDENTIALS     = require('../config/config')
    ,moment          = require('moment')
    ,request         = require('request')
    ,pg              = require('pg')
+,striptags              = require('striptags')
+   
    ,Sequelize       = require('sequelize')
    ,sequelize       = new Sequelize(CREDENTIALS.db_url, {logging: false})
    ,PDK             = require('node-pinterest')
@@ -85,13 +87,13 @@ var CREDENTIALS     = require('../config/config')
       })   
 
 function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecreatedutc, sourceurl) {
-  var temp = {}
+  var temp    = {}
   title       = title         || ''
   description = description   || ''
   temp.itemtypeid       = itemTypes[itemtypeid]
   temp.sourceid         = sourceid.toString()
-  temp.title            = title.replace(/(\r\n|\n|\r)/gm,"")
-  temp.description      = description.replace(/(\r\n|\n|\r)/gm,"")
+  temp.title            = striptags(title)//title.replace(/(\r\n|\n|\r)/gm,"")
+  temp.description      = striptags(description)//description.replace(/(\r\n|\n|\r)/gm,"")
   temp.sourcecreatedutc = sourcecreatedutc
   temp.sourceurl        = sourceurl
   temp.viewcount        = 0
@@ -103,13 +105,14 @@ function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecre
 
 function run() {
   console.log("Aggregator initialized, runs every 10 minutes.")  
+  console.log("Feeds to be aggregated : Instagram, Pinterest, Twitter, Youtube, Tumblr, Facebook.")
   async.waterfall([
     function(callback) {         
         ItemType.findAll({}).then(function(itemtypes){
           for (var i = 0; i < itemtypes.length; i++) {
             itemTypes[itemtypes[i].name.toLowerCase()] = itemtypes[i].itemtypeid
           }
-          console.log("Feeds to be aggregated : " + Object.keys(itemTypes).join(', ') + ".")
+          
           MediaType.findAll({}).then(function(mediatypes){          
             for (var i = 0; i < mediatypes.length; i++) {
               mediaTypes[mediatypes[i].type.toLowerCase()] = mediatypes[i].mediatypeid

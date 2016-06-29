@@ -26,6 +26,7 @@
     "pg": "*",
     "sequelize": "*",    
     "moment": "*",  
+    "striptags": "*",
     "instagram-node": "*" 
   },
   "devDependencies": {    
