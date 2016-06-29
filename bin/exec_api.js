@@ -124,7 +124,7 @@ function run() {
                     Item.findOne({ where: { itemtypeid: itemTypes['instagram'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(instagrampost){       
                       if(instagrampost) latestInstagramPostDate = moment(instagrampost.sourcecreatedutc).format('X')                      
                         Item.findOne({ where: { itemtypeid: itemTypes['pinterest'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(pinterestpost){
-                          if(pinterestpost) latestPinterestPostId = pinterestpost.sourceid
+                          if(pinterestpost) latestPinterestPostId = pinterestpost.sourcecreatedutc//.sourceid
                           Item.findOne({ where: { itemtypeid: itemTypes['tumblr'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(tumblrtpost){
                           if(tumblrtpost) latestTumblerPostId = tumblrtpost.sourceid
                           callback(null)
@@ -324,7 +324,6 @@ function run() {
               })
             })            
           }
-
       })
     }
   ], function (err, result) {
@@ -346,7 +345,7 @@ function getPins(boards, pinscount, data, media, cb){
           result = result.data
           for (var i = 0; i < result.length; i++) {
             pin = result[i]            
-            if(present(pin.link) && pin.media != undefined && (latestPinterestPostId == null || (latestPinterestPostId != null && pin.id > latestPinterestPostId))){            
+            if(present(pin.link) && pin.media != undefined && (latestPinterestPostId == null || (latestPinterestPostId != null && moment(pin.created_at).diff(moment(latestPinterestPostId)) > 0 ))){  
               if(pin.media.type == 'image' && pin.image && pin.image.original != undefined){
                 media.push({itemid: pin.id, mediatypeid: mediaTypes['image'], mediaurl: pin.image.original.url})   
               }
