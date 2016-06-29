@@ -87,8 +87,8 @@ var CREDENTIALS     = require('../config/config')
 
 function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecreatedutc, sourceurl) {
   var temp    = {}
-  title       = title         || ''
   description = description   || ''
+  title       = title         || description || 'Blank'  
   temp.itemtypeid       = itemTypes[itemtypeid]
   temp.sourceid         = sourceid.toString()
   temp.title            = striptags(title)//title.replace(/(\r\n|\n|\r)/gm,"")
