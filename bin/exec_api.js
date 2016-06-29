@@ -115,7 +115,7 @@ function run() {
             mediaTypes['photo'] = mediaTypes['image']            
               Item.findOne({ where: { itemtypeid: itemTypes['youtube'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(youtube){   
                 if(youtube && youtube.sourcecreatedutc) youtubeLatestPuplishDate = youtube.sourcecreatedutc
-              Item.findOne({ where: { itemtypeid: itemTypes['twitter'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(tweet){       
+              Item.findOne({ where: { itemtypeid: itemTypes['twitter'] },order: [ ['sourceid', 'DESC'] ]}).then(function(tweet){       
                 if(tweet) latestTweetId = tweet.sourceid
                 Item.findOne({ where: { itemtypeid: itemTypes['facebook'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(facebookpost){       
                   if(facebookpost) latestFacebookPostDate = moment(facebookpost.sourcecreatedutc).format('X')
