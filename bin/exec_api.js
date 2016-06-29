@@ -3,8 +3,7 @@ var CREDENTIALS     = require('../config/config')
    ,moment          = require('moment')
    ,request         = require('request')
    ,pg              = require('pg')
-,striptags              = require('striptags')
-   
+   ,striptags       = require('striptags')
    ,Sequelize       = require('sequelize')
    ,sequelize       = new Sequelize(CREDENTIALS.db_url, {logging: false})
    ,PDK             = require('node-pinterest')
@@ -218,16 +217,17 @@ function run() {
         if (response && response.items && response.items.length > 0) {
           result = response.items
           for (var i = 0; i < result.length; i++) {
-           if(present(result[i].id.videoId)) {
-            var snippet       = result[i].snippet
-            sourceID          = result[i].id.videoId
-            title             = snippet.title
-            description       = snippet.description
-            sourceCreatedUTC  = snippet.publishedAt
-            sourceUrl = "https://www.youtube.com/watch?v="+sourceID
-            data = pushToArray(data, 'youtube', sourceID, title, description, sourceCreatedUTC, sourceUrl)
-            j++
-          }
+             if(present(result[i].id.videoId)) {
+              var snippet       = result[i].snippet
+              sourceID          = result[i].id.videoId
+              title             = snippet.title
+              description       = snippet.description
+              sourceCreatedUTC  = snippet.publishedAt
+              sourceUrl = "https://www.youtube.com/watch?v="+sourceID
+              media.push({itemid: sourceID, mediatypeid: mediaTypes['video'], mediaurl: sourceUrl})
+              data = pushToArray(data, 'youtube', sourceID, title, description, sourceCreatedUTC, sourceUrl)
+              j++
+            }
           }          
         }
         console.log("got "+ j + " youtube posts")
