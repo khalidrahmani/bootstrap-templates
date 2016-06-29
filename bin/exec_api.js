@@ -16,12 +16,14 @@ var CREDENTIALS     = require('../config/config')
         access_token_key: CREDENTIALS.twitter.access_token,
         access_token_secret: CREDENTIALS.twitter.access_token_secret
       })
-   ,itemTypes    = {} 
-   ,mediaTypes   = {} 
-   ,youtubeLatestPuplishDate = null
-   ,latestTweetId            = null
-   ,latestFacebookPostDate     = null
-   ,latestInstagramPostDate     = null
+   ,itemTypes                 = {} 
+   ,mediaTypes                = {} 
+   ,youtubeLatestPuplishDate  = null
+   ,latestTweetId             = null
+   ,latestFacebookPostDate    = null
+   ,latestInstagramPostDate   = null
+   ,latestPinterestPostId     = null
+   ,latestTumblerPostId       = null
    ,Item         = sequelize.define('item', {
         itemtypeid:       Sequelize.INTEGER,
         areaid:           Sequelize.INTEGER,
@@ -121,7 +123,13 @@ function run() {
                   if(facebookpost) latestFacebookPostDate = moment(facebookpost.sourcecreatedutc).format('X')
                     Item.findOne({ where: { itemtypeid: itemTypes['instagram'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(instagrampost){       
                       if(instagrampost) latestInstagramPostDate = moment(instagrampost.sourcecreatedutc).format('X')                      
-                      callback(null)            
+                        Item.findOne({ where: { itemtypeid: itemTypes['pinterest'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(pinterestpost){
+                          if(pinterestpost) latestPinterestPostId = pinterestpost.sourceid
+                          Item.findOne({ where: { itemtypeid: itemTypes['tumblr'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(tumblrtpost){
+                          if(tumblrtpost) latestTumblerPostId = tumblrtpost.sourceid
+                          callback(null)
+                        })
+                      })
                     })
                 })
               })
@@ -204,16 +212,16 @@ function run() {
       }
       var request = youtubeV3.search.list(params,(err, response) => {
         var sourceID, title, description, sourceCreatedUTC, sourceUrl;
-        if (response && response.items && response.items.length > 0) {          
+        if (response && response.items && response.items.length > 0) {
           result = response.items
           for (var i = 0; i < result.length; i++) {
            if(present(result[i].id.videoId)) {
-            var snippet = result[i]['snippet'];
-            sourceID = result[i]['id']['videoId'];
-            title = snippet.title;
-            description = snippet.description;
-            sourceCreatedUTC = snippet.publishedAt;
-            sourceUrl = "https://www.youtube.com/watch?v="+result[i].id.videoId
+            var snippet       = result[i].snippet
+            sourceID          = result[i].id.videoId
+            title             = snippet.title
+            description       = snippet.description
+            sourceCreatedUTC  = snippet.publishedAt
+            sourceUrl = "https://www.youtube.com/watch?v="+sourceID
             data = pushToArray(data, 'youtube', sourceID, title, description, sourceCreatedUTC, sourceUrl)
             j++
           }
@@ -240,7 +248,7 @@ function run() {
             for (var i = 0; i < result.length; i++) {
               post = result[i]
               type = post.type
-              if(present(post.post_url) && (type == "photo" || type == "video")) {
+              if(present(post.post_url) && (type == "photo" || type == "video") && (latestTumblerPostId == null || (latestTumblerPostId != null && post.id > latestTumblerPostId))) {
                 if(type == "photo") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.photos[0].alt_sizes[0].url})
                 if(type == "video") media.push({itemid: post.id, mediatypeid: mediaTypes[type], mediaurl: post.player[0].embed_code})
                 data = pushToArray(data, 'tumblr', post.id, post.slug, post.caption, post.date, post.post_url)
@@ -290,32 +298,38 @@ function run() {
             data.splice(i, 1)
           }
         }
-        Item.bulkCreate(data).then(function(items) {  
-          savedsourceids = items.map(function(row){ return row['dataValues']['sourceid'].toString() }) // data.map(function(item){ return item['sourceid'] })   
-          Item.findAll({
-            where: {
-              sourceid: {$in: savedsourceids}
-            },
-            attributes: ['itemid', 'sourceid']
-          }).then(function(items){ 
-            _items = {}
-            _media = []
-            for (var i = 0; i < items.length; i++) {
-              _items[items[i].sourceid] = items[i].itemid
-            }
-            for (var i = 0; i < media.length; i++) {
-              if(_items[media[i].itemid] != undefined) _media.push({itemid: _items[media[i].itemid], mediatypeid: media[i].mediatypeid, mediaurl: media[i].mediaurl})
-            }           
-            Media.bulkCreate(_media).then(function(savedmedia) {              
-              callback(null, _items)
-            })
-          })
-        })
+        if(data.length == 0){
+          callback(null, data)
+        }
+          else{
+            Item.bulkCreate(data).then(function(items) {                
+              savedsourceids = items.map(function(row){ return row['dataValues']['sourceid'].toString() }) // data.map(function(item){ return item['sourceid'] })   
+              Item.findAll({
+                where: {
+                  sourceid: {$in: savedsourceids}
+                },
+                attributes: ['itemid', 'sourceid']
+              }).then(function(items){ 
+                _items = {}
+                _media = []
+                for (var i = 0; i < items.length; i++) {
+                  _items[items[i].sourceid] = items[i].itemid
+                }
+                for (var i = 0; i < media.length; i++) {
+                  if(_items[media[i].itemid] != undefined) _media.push({itemid: _items[media[i].itemid], mediatypeid: media[i].mediatypeid, mediaurl: media[i].mediaurl})
+                }           
+                Media.bulkCreate(_media).then(function(savedmedia) {              
+                  callback(null, data)
+                })
+              })
+            })            
+          }
+
       })
     }
   ], function (err, result) {
       if(err) console.log(err)
-      else    console.log("finished")
+      else    console.log("saved "+ result.length + " new posts.")
   })    
 }
 
@@ -324,7 +338,6 @@ function getPins(boards, pinscount, data, media, cb){
   else{
     var board = boards.pop()  
     console.log("fetch pinterest board : "+ board)
-
   try{
     pinterest.api('boards/' + board).then(function(_board) {       
       var title = _board.data.name
@@ -333,7 +346,7 @@ function getPins(boards, pinscount, data, media, cb){
           result = result.data
           for (var i = 0; i < result.length; i++) {
             pin = result[i]            
-            if(present(pin.link) && pin.media != undefined){            
+            if(present(pin.link) && pin.media != undefined && (latestPinterestPostId == null || (latestPinterestPostId != null && pin.id > latestPinterestPostId))){            
               if(pin.media.type == 'image' && pin.image && pin.image.original != undefined){
                 media.push({itemid: pin.id, mediatypeid: mediaTypes['image'], mediaurl: pin.image.original.url})   
               }
