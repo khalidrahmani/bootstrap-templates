@@ -5,7 +5,7 @@ var CREDENTIALS     = require('../config/config')
    ,pg              = require('pg')
    ,striptags       = require('striptags')
    ,Sequelize       = require('sequelize')
-   ,sequelize       = new Sequelize(CREDENTIALS.db_url, {logging: false})
+   ,sequelize       = new Sequelize(CREDENTIALS.db_url, {logging: false, dialectOptions: { ssl : true }})
    ,PDK             = require('node-pinterest')
    ,pinterest       = PDK.init(CREDENTIALS.pinterest.token)
    ,google          = require('googleapis')
@@ -96,7 +96,7 @@ function pushToArray(_array, itemtypeid, sourceid, title, description, sourcecre
   temp.sourcecreatedutc = sourcecreatedutc
   temp.sourceurl        = sourceurl
   temp.viewcount        = 0
-  temp.coordinatexy     = '(70,4)'
+  temp.coordinatexy     = '(000,000)'
   temp.labelalignment   = 'LEFT'  
   _array.push(temp)    
   return _array

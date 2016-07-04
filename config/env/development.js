@@ -1,5 +1,5 @@
 module.exports = {
-    "db_url": 'postgres://postgres:postgres@localhost:5432/aggregator',
+    "db_url": 'postgres://vhlyhaqrofdcdx:Co01whJCplFzh96RQ3YcW-cgc8@ec2-54-83-27-147.compute-1.amazonaws.com:5432/d9qi2g6h8mtf28',
     "schedule": {
         "time": "*/2 * * * *"
     },
