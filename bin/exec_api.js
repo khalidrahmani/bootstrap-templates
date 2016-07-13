@@ -19,7 +19,7 @@ var CREDENTIALS     = require('../config/config')
       })
    ,itemTypes                 = {} 
    ,mediaTypes                = {} 
-   ,includeAllPinterest                = false
+   ,includeAllPinterest       = false
    ,youtubeLatestPuplishDate  = null
    ,latestTweetId             = null
    ,latestFacebookPostDate    = null
