@@ -19,7 +19,7 @@ var CREDENTIALS     = require('../config/config')
       })
    ,itemTypes                 = {} 
    ,mediaTypes                = {} 
-   ,includeAll                = false
+   ,includeAllPinterest                = false
    ,youtubeLatestPuplishDate  = null
    ,latestTweetId             = null
    ,latestFacebookPostDate    = null
@@ -118,7 +118,7 @@ function run() {
             mediaTypes[mediatypes[i].type.toLowerCase()] = mediatypes[i].mediatypeid
           }
           mediaTypes['photo'] = mediaTypes['image'] 
-          if(includeAll == false) {
+          //if(includeAll == false) {
             Item.findOne({ where: { itemtypeid: itemTypes['youtube'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(youtube){   
               if(youtube && youtube.sourcecreatedutc) youtubeLatestPuplishDate = youtube.sourcecreatedutc
               Item.findOne({ where: { itemtypeid: itemTypes['twitter'] },order: [ ['sourceid', 'DESC'] ]}).then(function(tweet){       
@@ -128,7 +128,7 @@ function run() {
                   Item.findOne({ where: { itemtypeid: itemTypes['instagram'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(instagrampost){       
                     if(instagrampost) latestInstagramPostDate = moment(instagrampost.sourcecreatedutc).format('X')                      
                     Item.findOne({ where: { itemtypeid: itemTypes['pinterest'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(pinterestpost){
-                      if(pinterestpost) latestPinterestPostId = pinterestpost.sourcecreatedutc//.sourceid
+                      if(includeAllPinterest == false && pinterestpost) latestPinterestPostId = pinterestpost.sourcecreatedutc//.sourceid
                       Item.findOne({ where: { itemtypeid: itemTypes['tumblr'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(tumblrtpost){
                         if(tumblrtpost) latestTumblerPostId = tumblrtpost.sourceid
                         callback(null)
@@ -138,8 +138,8 @@ function run() {
                 })
               })
             })
-          }
-          else callback(null)
+          //}
+          //else callback(null)
         })
       })
     },
@@ -378,7 +378,7 @@ function present(argument) {
 }
 
 process.argv.forEach(function (val, index, array) {
-  if(val == "includeAll") includeAll = true
+  if(val == "includeAllPinterest") includeAllPinterest = true
 });
 
 run()
