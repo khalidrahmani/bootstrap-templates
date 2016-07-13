@@ -47,7 +47,7 @@ module.exports = {
         "appId": "4836125079951655295",
         "appSecret": "5649b1fd57c762fdae1547c33069b2a5b1bb59813daed5ca70feed1211383afe",
         "userName": "cartier",
-        "user_boards": ["cartier/calibre-de-cartier-diver", "cartier/jeanne-toussaint-louis-cartier-collection", "cartier/winter-tale-gifts-selection"]
+        "user_boards": ["cartier/calibre-de-cartier-diver", "cartier/jeanne-toussaint-louis-cartier-collection", "cartier/winter-tale-gifts-selection","cartier/cartier-id-two-concept-watch", "cartier/juste-un-clou"]
     },
     "twitter": {
         "consumer_key": "gOWZTWEdLocq05v8vdsnKtRYd",

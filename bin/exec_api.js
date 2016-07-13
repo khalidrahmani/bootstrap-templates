@@ -19,6 +19,7 @@ var CREDENTIALS     = require('../config/config')
       })
    ,itemTypes                 = {} 
    ,mediaTypes                = {} 
+   ,includeAll                = false
    ,youtubeLatestPuplishDate  = null
    ,latestTweetId             = null
    ,latestFacebookPostDate    = null
@@ -107,35 +108,38 @@ function run() {
   console.log("Feeds to be aggregated : Instagram, Pinterest, Twitter, Youtube, Tumblr, Facebook.")
   async.waterfall([
     function(callback) {         
-        ItemType.findAll({}).then(function(itemtypes){
-          for (var i = 0; i < itemtypes.length; i++) {
-            itemTypes[itemtypes[i].name.toLowerCase()] = itemtypes[i].itemtypeid
+      ItemType.findAll({}).then(function(itemtypes){
+        for (var i = 0; i < itemtypes.length; i++) {
+          itemTypes[itemtypes[i].name.toLowerCase()] = itemtypes[i].itemtypeid
+        }
+        
+        MediaType.findAll({}).then(function(mediatypes){          
+          for (var i = 0; i < mediatypes.length; i++) {
+            mediaTypes[mediatypes[i].type.toLowerCase()] = mediatypes[i].mediatypeid
           }
-          
-          MediaType.findAll({}).then(function(mediatypes){          
-            for (var i = 0; i < mediatypes.length; i++) {
-              mediaTypes[mediatypes[i].type.toLowerCase()] = mediatypes[i].mediatypeid
-            }
-            mediaTypes['photo'] = mediaTypes['image']            
-              Item.findOne({ where: { itemtypeid: itemTypes['youtube'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(youtube){   
-                if(youtube && youtube.sourcecreatedutc) youtubeLatestPuplishDate = youtube.sourcecreatedutc
+          mediaTypes['photo'] = mediaTypes['image'] 
+          if(includeAll == false) {
+            Item.findOne({ where: { itemtypeid: itemTypes['youtube'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(youtube){   
+              if(youtube && youtube.sourcecreatedutc) youtubeLatestPuplishDate = youtube.sourcecreatedutc
               Item.findOne({ where: { itemtypeid: itemTypes['twitter'] },order: [ ['sourceid', 'DESC'] ]}).then(function(tweet){       
                 if(tweet) latestTweetId = tweet.sourceid
                 Item.findOne({ where: { itemtypeid: itemTypes['facebook'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(facebookpost){       
                   if(facebookpost) latestFacebookPostDate = moment(facebookpost.sourcecreatedutc).format('X')
-                    Item.findOne({ where: { itemtypeid: itemTypes['instagram'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(instagrampost){       
-                      if(instagrampost) latestInstagramPostDate = moment(instagrampost.sourcecreatedutc).format('X')                      
-                        Item.findOne({ where: { itemtypeid: itemTypes['pinterest'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(pinterestpost){
-                          if(pinterestpost) latestPinterestPostId = pinterestpost.sourcecreatedutc//.sourceid
-                          Item.findOne({ where: { itemtypeid: itemTypes['tumblr'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(tumblrtpost){
-                          if(tumblrtpost) latestTumblerPostId = tumblrtpost.sourceid
-                          callback(null)
-                        })
+                  Item.findOne({ where: { itemtypeid: itemTypes['instagram'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(instagrampost){       
+                    if(instagrampost) latestInstagramPostDate = moment(instagrampost.sourcecreatedutc).format('X')                      
+                    Item.findOne({ where: { itemtypeid: itemTypes['pinterest'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(pinterestpost){
+                      if(pinterestpost) latestPinterestPostId = pinterestpost.sourcecreatedutc//.sourceid
+                      Item.findOne({ where: { itemtypeid: itemTypes['tumblr'] },order: [ ['sourcecreatedutc', 'DESC'] ]}).then(function(tumblrtpost){
+                        if(tumblrtpost) latestTumblerPostId = tumblrtpost.sourceid
+                        callback(null)
                       })
                     })
+                  })
                 })
               })
-          })
+            })
+          }
+          else callback(null)
         })
       })
     },
@@ -372,4 +376,9 @@ function getPins(boards, pinscount, data, media, cb){
 function present(argument) {
   return (argument != '' && argument != null && argument != undefined)
 }
+
+process.argv.forEach(function (val, index, array) {
+  if(val == "includeAll") includeAll = true
+});
+
 run()
