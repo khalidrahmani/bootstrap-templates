@@ -1,5 +1,5 @@
 module.exports = {
-    "db_url": 'postgres://vhlyhaqrofdcdx:Co01whJCplFzh96RQ3YcW-cgc8@ec2-54-83-27-147.compute-1.amazonaws.com:5432/d9qi2g6h8mtf28',
+    "db_url": "postgres://postgres:postgres@localhost:5432/aggregator",
     "schedule": {
         "time": "*/2 * * * *"
     },
@@ -47,7 +47,7 @@ module.exports = {
         "appId": "4836125079951655295",
         "appSecret": "5649b1fd57c762fdae1547c33069b2a5b1bb59813daed5ca70feed1211383afe",
         "userName": "cartier",
-        "user_boards": ["cartier/calibre-de-cartier-diver", "cartier/jeanne-toussaint-louis-cartier-collection", "cartier/winter-tale-gifts-selection","cartier/cartier-id-two-concept-watch", "cartier/juste-un-clou"]
+        "user_boards": ["cartier/calibre-de-cartier-diver", "cartier/jeanne-toussaint-louis-cartier-collection"]//, "cartier/winter-tale-gifts-selection","cartier/cartier-id-two-concept-watch", "cartier/juste-un-clou","cartier/cartier-panth%C3%A8re-de-cartier-collection", "cartier/summergram", "cartier/etourdissant-cartier-collection", "cartier/cartier-id-two-concept-watch"]
     },
     "twitter": {
         "consumer_key": "gOWZTWEdLocq05v8vdsnKtRYd",

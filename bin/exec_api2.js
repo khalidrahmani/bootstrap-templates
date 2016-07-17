@@ -2,7 +2,6 @@ var CREDENTIALS     = require('../config/config')
    ,async           = require('async')
    ,moment          = require('moment')
    ,request         = require('request')
-   ,cheerio         = require('cheerio')
    ,pg              = require('pg')
    ,striptags       = require('striptags')
    ,Sequelize       = require('sequelize')
@@ -174,21 +173,19 @@ function run() {
       })
     },
     function(data, media, callback) {
-      console.log("Pinterest posts.") 
-
-    request.get({url: "https://www.pinterest.com/"+CREDENTIALS.pinterest.userName+"/boards/"}, function (error, response, body) {
-      user_boards = []
-      if (!error && response.statusCode == 200) {
-        var $ = cheerio.load(response.body);
-        $('a.boardLinkWrapper').each(function(i, element){
-          user_boards.push($(this).attr('href'))
-        })
-        getPins(user_boards, 0, data, media, function(pinscount, _data, _media){
-          console.log("got "+ pinscount + " pinterest posts.")
+      console.log("Pinterest posts.")      
+      getPins(CREDENTIALS.pinterest.user_boards, 0, data, media, function(pinscount, _data, _media){
+        sourceids = _data.map(function(item){ return item['sourceid'] })
+        Item.findAll({
+          where: {
+            sourceid: {$in: sourceids}
+          },
+          attributes: ['sourceid']
+        }).then(function(rows){
+          console.log("got "+ (pinscount - rows.length) + " pinterest posts.")
           callback(null, _data, _media)
         })
-      }
-    })
+      })   
     },
     function(data, media, callback) {
       console.log("twitter posts.")
@@ -356,9 +353,9 @@ function getPins(boards, pinscount, data, media, cb){
     var board = boards.pop()  
     console.log("fetch pinterest board : "+ board)
   try{
-    pinterest.api('boards' + board).then(function(_board) {       
+    pinterest.api('boards/' + board).then(function(_board) {       
       var title = _board.data.name
-      pinterest.api('boards' + board + 'pins',{ qs: {fields: 'id,created_at,note,link,image,media,attribution' }}).then(function(result) {       
+      pinterest.api('boards/' + board + '/pins',{ qs: {fields: 'id,created_at,note,link,image,media,attribution' }}).then(function(result) {       
         if (result.data.length > 0) {        
           result = result.data
           for (var i = 0; i < result.length; i++) {
@@ -390,6 +387,6 @@ function present(argument) {
 
 process.argv.forEach(function (val, index, array) {
   if(val == "includeAllPinterest") includeAllPinterest = true
-})
+});
 
 run()
